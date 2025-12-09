@@ -70,7 +70,42 @@ const userSchema = new mongoose.Schema({
   approvedAt: {
     type: Date,
     default: null
-  }
+  },
+  avatar: {
+    type: String,
+    default: null
+  },
+  banner: {
+    type: String,
+    default: null
+  },
+  bio: {
+    type: String,
+    default: '',
+    maxlength: 190
+  },
+  pronouns: {
+    type: String,
+    default: ''
+  },
+  status: {
+    type: String,
+    enum: ['online', 'idle', 'dnd', 'invisible', 'offline'],
+    default: 'online'
+  },
+  customStatus: {
+    text: String,
+    emoji: String,
+    expiresAt: Date
+  },
+  lastSeen: {
+    type: Date,
+    default: Date.now
+  },
+  badges: [{
+    type: String,
+    enum: ['staff', 'partner', 'verified', 'early_supporter', 'bug_hunter', 'contributor']
+  }]
 });
 
 module.exports = mongoose.model('User', userSchema);

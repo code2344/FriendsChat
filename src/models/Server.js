@@ -117,6 +117,161 @@ const serverSchema = new mongoose.Schema({
       default: true
     }
   },
+  boosts: {
+    level: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 3
+    },
+    boosters: [{
+      user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      boostedAt: {
+        type: Date,
+        default: Date.now
+      }
+    }]
+  },
+  categories: [{
+    name: {
+      type: String,
+      required: true
+    },
+    position: {
+      type: Number,
+      default: 0
+    },
+    channels: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Channel'
+    }]
+  }],
+  emojis: [{
+    name: {
+      type: String,
+      required: true
+    },
+    url: {
+      type: String,
+      required: true
+    },
+    animated: {
+      type: Boolean,
+      default: false
+    },
+    uploadedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  stickers: [{
+    name: {
+      type: String,
+      required: true
+    },
+    url: {
+      type: String,
+      required: true
+    },
+    uploadedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  soundboard: [{
+    name: {
+      type: String,
+      required: true
+    },
+    url: {
+      type: String,
+      required: true
+    },
+    uploadedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  vanityUrl: {
+    type: String,
+    default: null,
+    unique: true,
+    sparse: true
+  },
+  features: [{
+    type: String,
+    enum: ['verified', 'partnered', 'discoverable', 'animated_icon', 'banner', 'vanity_url', 'invite_splash', 'welcome_screen']
+  }],
+  welcomeScreen: {
+    enabled: {
+      type: Boolean,
+      default: false
+    },
+    description: {
+      type: String,
+      default: ''
+    },
+    welcomeChannels: [{
+      channel: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Channel'
+      },
+      description: {
+        type: String
+      },
+      emoji: {
+        type: String
+      }
+    }]
+  },
+  afkChannel: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Channel',
+    default: null
+  },
+  afkTimeout: {
+    type: Number,
+    default: 300
+  },
+  systemChannel: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Channel',
+    default: null
+  },
+  rulesChannel: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Channel',
+    default: null
+  },
+  stats: {
+    totalMessages: {
+      type: Number,
+      default: 0
+    },
+    totalMembers: {
+      type: Number,
+      default: 0
+    },
+    onlineMembers: {
+      type: Number,
+      default: 0
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now

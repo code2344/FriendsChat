@@ -15,6 +15,8 @@ const channelRoutes = require('./routes/channels');
 const messageRoutes = require('./routes/messages');
 const adminRoutes = require('./routes/admin');
 const teacherAccessRoutes = require('./routes/teacherAccess');
+const serverFolderRoutes = require('./routes/serverFolders');
+const userSettingsRoutes = require('./routes/userSettings');
 
 const app = express();
 const server = http.createServer(app);
@@ -38,6 +40,8 @@ app.use('/api/channels', channelRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/teacher-access', teacherAccessRoutes);
+app.use('/api/server-folders', serverFolderRoutes);
+app.use('/api/settings', userSettingsRoutes);
 
 // Serve HTML pages
 app.get('/', (req, res) => {

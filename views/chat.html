@@ -18,6 +18,8 @@
             <div class="server-separator"></div>
             <div id="serverIconsList"></div>
             <div class="server-icon add-server" id="addServerIcon" title="Add Server">+</div>
+            <div class="server-icon add-server" id="createFolderIcon" title="Create Folder">📁</div>
+            <div class="server-icon add-server" id="discoverServersIcon" title="Discover Servers">🔍</div>
         </div>
 
         <!-- Channels Sidebar -->
@@ -61,8 +63,16 @@
                     </div>
                 </div>
                 <div class="user-actions">
-                    <button class="user-action-btn tooltip" id="adminPanelBtn" style="display: none;" title="Admin Panel">
+                    <button class="user-action-btn tooltip" id="settingsBtn" title="Settings">
                         ⚙
+                        <span class="tooltiptext">Settings</span>
+                    </button>
+                    <button class="user-action-btn tooltip" id="friendsBtn" title="Friends">
+                        👥
+                        <span class="tooltiptext">Friends</span>
+                    </button>
+                    <button class="user-action-btn tooltip" id="adminPanelBtn" style="display: none;" title="Admin Panel">
+                        🛡️
                         <span class="tooltiptext">Admin Panel</span>
                     </button>
                     <button class="user-action-btn tooltip" id="logoutBtn" title="Logout">
@@ -83,8 +93,20 @@
                     <span class="channel-topic" id="channelTopic">Select a channel to start chatting</span>
                 </div>
                 <div class="chat-header-actions">
+                    <button class="header-action-btn" id="searchBtn" title="Search">
+                        🔍
+                    </button>
+                    <button class="header-action-btn" id="pinnedBtn" title="Pinned Messages">
+                        📌
+                    </button>
+                    <button class="header-action-btn" id="membersBtn" title="Members List">
+                        👥
+                    </button>
                     <button class="header-action-btn" id="inviteBtn" style="display: none;" title="Invite">
                         ➕
+                    </button>
+                    <button class="header-action-btn" id="channelSettingsBtn" style="display: none;" title="Channel Settings">
+                        ⚙
                     </button>
                 </div>
             </div>
@@ -314,6 +336,241 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Create Folder Modal -->
+    <div id="createFolderModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Create Server Folder</h2>
+                <button class="modal-close" onclick="closeModal('createFolderModal')">×</button>
+            </div>
+            <form id="createFolderForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Folder Name</label>
+                        <input type="text" id="folderNameInput" class="user-search-input" required placeholder="My Servers">
+                    </div>
+                    <div class="form-group">
+                        <label>Folder Color</label>
+                        <input type="color" id="folderColorInput" value="#5865f2" style="width: 100%; height: 40px; border: none; border-radius: 4px;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createFolderModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Folder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Profile Modal -->
+    <div id="userProfileModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 class="modal-title">User Profile</h2>
+                <button class="modal-close" onclick="closeModal('userProfileModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="profileContent" style="text-align: center;">
+                    <div id="profileBanner" style="width: 100%; height: 120px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; margin-bottom: 16px;"></div>
+                    <div id="profileAvatar" style="width: 80px; height: 80px; border-radius: 50%; background: #5865f2; color: white; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; margin: -40px auto 16px;"></div>
+                    <h3 id="profileUsername" style="margin-bottom: 4px;">Username</h3>
+                    <p id="profileBio" style="color: var(--text-muted); margin-bottom: 16px;">Bio goes here...</p>
+                    <div id="profileBadges" style="display: flex; gap: 8px; justify-content: center; margin-bottom: 16px;"></div>
+                    <div style="display: flex; gap: 12px; justify-content: center;">
+                        <button class="btn btn-primary" onclick="startDMFromProfile()">Send Message</button>
+                        <button class="btn btn-secondary" onclick="addFriendFromProfile()">Add Friend</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2 class="modal-title">User Settings</h2>
+                <button class="modal-close" onclick="closeModal('settingsModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>Appearance</h3>
+                    <div class="form-group">
+                        <label>Theme</label>
+                        <select id="themeSelect" class="user-search-input">
+                            <option value="dark">Dark</option>
+                            <option value="light">Light</option>
+                            <option value="amoled">AMOLED</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Font Size</label>
+                        <input type="range" id="fontSizeSlider" min="12" max="20" value="16" style="width: 100%;">
+                        <span id="fontSizeDisplay">16px</span>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Notifications</h3>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="desktopNotifications"> Enable Desktop Notifications
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="soundNotifications"> Enable Sound
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Privacy</h3>
+                    <div class="form-group">
+                        <label>Allow Direct Messages From</label>
+                        <select id="allowDMsSelect" class="user-search-input">
+                            <option value="everyone">Everyone</option>
+                            <option value="friends">Friends Only</option>
+                            <option value="none">Nobody</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="showActivity"> Show Activity Status
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Custom Status</h3>
+                    <div class="form-group">
+                        <label>Status Text</label>
+                        <input type="text" id="statusText" class="user-search-input" placeholder="What's happening?">
+                    </div>
+                    <div class="form-group">
+                        <label>Emoji</label>
+                        <input type="text" id="statusEmoji" class="user-search-input" placeholder="😊">
+                    </div>
+                    <button class="btn btn-primary" onclick="saveCustomStatus()">Set Status</button>
+                    <button class="btn btn-secondary" onclick="clearCustomStatus()">Clear Status</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveSettings()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pin Messages Modal -->
+    <div id="pinnedMessagesModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Pinned Messages</h2>
+                <button class="modal-close" onclick="closeModal('pinnedMessagesModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="pinnedMessagesList" style="max-height: 400px; overflow-y: auto;">
+                    Loading...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Messages Modal -->
+    <div id="searchModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Search Messages</h2>
+                <button class="modal-close" onclick="closeModal('searchModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 16px;">
+                    <input type="text" id="searchMessagesInput" class="user-search-input" placeholder="Search messages in this channel...">
+                </div>
+                <div id="searchResults" style="max-height: 400px; overflow-y: auto;">
+                    <p style="text-align: center; color: var(--text-muted);">Type to search...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Friends List Modal -->
+    <div id="friendsModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Friends</h2>
+                <button class="modal-close" onclick="closeModal('friendsModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid var(--background-light); padding-bottom: 8px;">
+                    <button class="btn btn-secondary btn-small" onclick="showFriendsTab('all')">All</button>
+                    <button class="btn btn-secondary btn-small" onclick="showFriendsTab('pending')">Pending</button>
+                    <button class="btn btn-primary btn-small" onclick="showFriendsTab('add')">Add Friend</button>
+                </div>
+                <div id="friendsListContent">
+                    Loading...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Channel Settings Modal -->
+    <div id="channelSettingsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Channel Settings</h2>
+                <button class="modal-close" onclick="closeModal('channelSettingsModal')">×</button>
+            </div>
+            <form id="channelSettingsForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Channel Name</label>
+                        <input type="text" id="channelSettingsName" class="user-search-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Channel Topic</label>
+                        <textarea id="channelSettingsTopic" class="user-search-input" rows="3" placeholder="What's this channel about?"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="channelSettingsNSFW"> NSFW Channel
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>Slowmode (seconds)</label>
+                        <input type="number" id="channelSettingsSlowmode" class="user-search-input" min="0" max="21600" value="0">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" onclick="deleteChannel()" style="margin-right: auto;">Delete Channel</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('channelSettingsModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Context Menu (Right-click) -->
+    <div id="contextMenu" class="context-menu" style="display: none;">
+        <div class="context-menu-item" onclick="contextAction('reply')">💬 Reply</div>
+        <div class="context-menu-item" onclick="contextAction('edit')">✏️ Edit</div>
+        <div class="context-menu-item" onclick="contextAction('pin')">📌 Pin</div>
+        <div class="context-menu-item" onclick="contextAction('copy')">📋 Copy Text</div>
+        <div class="context-menu-item" onclick="contextAction('react')">😊 Add Reaction</div>
+        <div class="context-menu-item context-danger" onclick="contextAction('delete')">🗑️ Delete</div>
+    </div>
+
+    <!-- Reaction Picker -->
+    <div id="reactionPicker" class="reaction-picker" style="display: none;">
+        <div class="reaction-emoji" onclick="addReaction('👍')">👍</div>
+        <div class="reaction-emoji" onclick="addReaction('❤️')">❤️</div>
+        <div class="reaction-emoji" onclick="addReaction('😂')">😂</div>
+        <div class="reaction-emoji" onclick="addReaction('😮')">😮</div>
+        <div class="reaction-emoji" onclick="addReaction('😢')">😢</div>
+        <div class="reaction-emoji" onclick="addReaction('😡')">😡</div>
+        <div class="reaction-emoji" onclick="addReaction('🎉')">🎉</div>
+        <div class="reaction-emoji" onclick="addReaction('🔥')">🔥</div>
+        <div class="reaction-emoji" onclick="addReaction('✅')">✅</div>
+        <div class="reaction-emoji" onclick="addReaction('❌')">❌</div>
     </div>
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
