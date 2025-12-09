@@ -115,6 +115,17 @@ async function startServer() {
       // Initialize console after server starts
       const consoleManager = new ConsoleManager();
       consoleManager.initialize();
+
+      // Run auto-archive every 6 hours
+      const archiveManager = require('./utils/archiveManager');
+      setInterval(async () => {
+        await archiveManager.autoArchive();
+      }, 6 * 60 * 60 * 1000); // 6 hours
+
+      // Run initial archive check after 5 minutes
+      setTimeout(async () => {
+        await archiveManager.autoArchive();
+      }, 5 * 60 * 1000); // 5 minutes
     });
   } catch (error) {
     console.error('Failed to start server:', error);

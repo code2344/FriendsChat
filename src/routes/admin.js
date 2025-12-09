@@ -16,4 +16,10 @@ router.get('/banned', authenticate, isAdmin, adminController.getBannedUsers);
 router.post('/promote/:userId', authenticate, isMasterAdmin, adminController.promoteToAdmin);
 router.post('/demote/:userId', authenticate, isMasterAdmin, adminController.demoteAdmin);
 
+// Master admin only - System management
+router.get('/stats/database', authenticate, isMasterAdmin, adminController.getDatabaseStats);
+router.get('/stats/health', authenticate, isMasterAdmin, adminController.getSystemHealth);
+router.post('/archive/trigger', authenticate, isMasterAdmin, adminController.triggerArchive);
+router.get('/archive/search', authenticate, isMasterAdmin, adminController.searchArchived);
+
 module.exports = router;

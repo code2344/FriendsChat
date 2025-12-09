@@ -1,65 +1,141 @@
-// Check authentication and admin role
+// Authentication check
 const token = localStorage.getItem('token');
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-if (!token || !user.id || (user.role !== 'admin' && user.role !== 'master_admin')) {
+if (!token || !user.id) {
     window.location.href = '/login';
 }
 
-// Show master admin sections
+if (user.role !== 'admin' && user.role !== 'master_admin') {
+    alert('Unauthorized access');
+    window.location.href = '/chat';
+}
+
+// Show master admin sections if master admin
 if (user.role === 'master_admin') {
-    document.querySelectorAll('.master-admin-only').forEach(el => {
-        el.style.display = 'block';
-    });
+    document.getElementById('masterAdminNav').style.display = 'block';
 }
 
-// Logout
-document.getElementById('logoutBtn').addEventListener('click', () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
-});
+// Section navigation
+function showSection(section) {
+    document.querySelectorAll('.admin-section').forEach(s => s.style.display = 'none');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    
+    const sectionElement = document.getElementById(`${section}-section`);
+    if (sectionElement) {
+        sectionElement.style.display = 'block';
+        event.target.classList.add('active');
+    }
 
-// Navigation
-document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const section = btn.dataset.section;
-        
-        // Update active button
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        
-        // Show section
-        document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-        document.getElementById(section).classList.add('active');
-        
-        // Load section data
-        loadSectionData(section);
-    });
-});
-
-async function loadSectionData(section) {
+    // Load data for section
     switch(section) {
-        case 'pending-users':
-            loadPendingUsers();
+        case 'dashboard':
+            refreshDashboard();
+            break;
+        case 'users':
+            loadUsers();
+            break;
+        case 'servers':
+            loadServers();
             break;
         case 'reports':
             loadReports();
             break;
-        case 'banned-users':
-            loadBannedUsers();
+        case 'bans':
+            loadBans();
             break;
-        case 'teacher-requests':
-            loadTeacherRequests();
+        case 'database':
+            loadDatabaseStats();
             break;
-        case 'all-messages':
-            loadAllMessages();
+        case 'archive':
+            loadArchiveStats();
+            break;
+        case 'health':
+            loadSystemHealth();
             break;
     }
 }
 
-// Pending Users
-async function loadPendingUsers() {
+function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+}
+
+// Dashboard
+async function refreshDashboard() {
+    try {
+        // Load basic stats for all admins
+        const response = await fetch('/api/auth/pending-users', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const reportsResponse = await fetch('/api/admin/reports', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok && reportsResponse.ok) {
+            const pendingUsers = await response.json();
+            const reports = await reportsResponse.json();
+            const pendingReports = reports.filter(r => r.status === 'pending');
+
+            const statCards = document.getElementById('statCards');
+            statCards.innerHTML = `
+                <div class="stat-card warning">
+                    <div class="stat-label">Pending Approvals</div>
+                    <div class="stat-value">${pendingUsers.length}</div>
+                    <div class="stat-subtitle">User registrations</div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="stat-label">Pending Reports</div>
+                    <div class="stat-value">${pendingReports.length}</div>
+                    <div class="stat-subtitle">Requires attention</div>
+                </div>
+            `;
+        }
+
+        // Load system health if master admin
+        if (user.role === 'master_admin') {
+            const healthResponse = await fetch('/api/admin/stats/health', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (healthResponse.ok) {
+                const health = await healthResponse.json();
+                
+                const overview = document.getElementById('systemOverview');
+                overview.innerHTML = `
+                    <div class="stat-cards">
+                        <div class="stat-card ${health.health.status === 'healthy' ? 'success' : 'warning'}">
+                            <div class="stat-label">System Status</div>
+                            <div class="stat-value">${health.health.status.toUpperCase()}</div>
+                            <div class="stat-subtitle">DB: ${health.health.databaseUsage}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Messages (24h)</div>
+                            <div class="stat-value">${health.activity.last24h.messages}</div>
+                            <div class="stat-subtitle">+${health.activity.last24h.directMessages} DMs</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">New Users (24h)</div>
+                            <div class="stat-value">${health.activity.last24h.newUsers}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Uptime</div>
+                            <div class="stat-value">${Math.floor(health.health.uptime / 3600)}h</div>
+                            <div class="stat-subtitle">${Math.floor((health.health.uptime % 3600) / 60)}m</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+    }
+}
+
+// Users Management
+async function loadUsers() {
     try {
         const response = await fetch('/api/auth/pending-users', {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -67,69 +143,56 @@ async function loadPendingUsers() {
 
         if (response.ok) {
             const users = await response.json();
-            displayPendingUsers(users);
+            const pendingDiv = document.getElementById('pendingUsers');
+
+            if (users.length === 0) {
+                pendingDiv.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No pending approvals</p>';
+                return;
+            }
+
+            pendingDiv.innerHTML = users.map(u => `
+                <div class="table-row">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-bright);">${u.username}</div>
+                        <div style="font-size: 14px; color: var(--text-muted);">
+                            ${u.firstName} ${u.lastName} - ${u.email}
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                            Student ID: ${u.studentId}
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-small btn-primary" onclick="approveUser('${u._id}')">✓ Approve</button>
+                        <button class="btn btn-small btn-danger" onclick="denyUser('${u._id}')">✗ Deny</button>
+                    </div>
+                </div>
+            `).join('');
         }
     } catch (error) {
-        console.error('Error loading pending users:', error);
+        console.error('Error loading users:', error);
     }
-}
-
-function displayPendingUsers(users) {
-    const list = document.getElementById('pendingUsersList');
-    list.innerHTML = '';
-
-    if (users.length === 0) {
-        list.innerHTML = '<p>No pending users</p>';
-        return;
-    }
-
-    users.forEach(user => {
-        const card = document.createElement('div');
-        card.className = 'admin-card';
-        card.innerHTML = `
-            <h3>${user.firstName} ${user.lastName}</h3>
-            <p><strong>Username:</strong> ${user.username}</p>
-            <p><strong>Email:</strong> ${user.email}</p>
-            <p><strong>Student ID:</strong> ${user.studentId}</p>
-            <p><strong>Registered:</strong> ${new Date(user.createdAt).toLocaleString()}</p>
-            <div>
-                <label>Grade Level: <input type="number" id="grade-${user._id}" value="9" min="1" max="12"></label>
-            </div>
-            <div style="margin-top: 10px;">
-                <button class="btn btn-primary" onclick="approveUser('${user._id}')">Approve</button>
-                <button class="btn btn-danger" onclick="denyUser('${user._id}')">Deny</button>
-            </div>
-        `;
-        list.appendChild(card);
-    });
 }
 
 async function approveUser(userId) {
-    const gradeLevel = document.getElementById(`grade-${userId}`).value;
-    
     try {
         const response = await fetch(`/api/auth/approve/${userId}`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ gradeLevel: parseInt(gradeLevel) })
+            headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.ok) {
             alert('User approved successfully');
-            loadPendingUsers();
+            loadUsers();
+            refreshDashboard();
         }
     } catch (error) {
         console.error('Error approving user:', error);
-        alert('Failed to approve user');
     }
 }
 
 async function denyUser(userId) {
-    if (!confirm('Are you sure you want to deny this registration?')) return;
-    
+    if (!confirm('Are you sure you want to deny this user?')) return;
+
     try {
         const response = await fetch(`/api/auth/deny/${userId}`, {
             method: 'DELETE',
@@ -137,69 +200,92 @@ async function denyUser(userId) {
         });
 
         if (response.ok) {
-            alert('User registration denied');
-            loadPendingUsers();
+            alert('User denied and removed');
+            loadUsers();
+            refreshDashboard();
         }
     } catch (error) {
         console.error('Error denying user:', error);
-        alert('Failed to deny user');
+    }
+}
+
+// Servers
+async function loadServers() {
+    try {
+        const response = await fetch('/api/servers/all', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const servers = await response.json();
+            const serversList = document.getElementById('serversList');
+
+            serversList.innerHTML = servers.map(s => `
+                <div class="table-row">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-bright);">${s.name}</div>
+                        <div style="font-size: 14px; color: var(--text-muted);">
+                            Owner: ${s.owner?.username} | Members: ${s.members?.length || 0}
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                            ${s.isPublic ? '<span class="user-badge badge-approved">PUBLIC</span>' : '<span class="user-badge">PRIVATE</span>'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Error loading servers:', error);
     }
 }
 
 // Reports
 async function loadReports() {
-    const status = document.getElementById('reportStatusFilter').value;
-    const url = status ? `/api/admin/reports?status=${status}` : '/api/admin/reports';
-    
     try {
-        const response = await fetch(url, {
+        const response = await fetch('/api/admin/reports', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.ok) {
             const reports = await response.json();
-            displayReports(reports);
+            const reportsList = document.getElementById('reportsList');
+
+            if (reports.length === 0) {
+                reportsList.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No reports</p>';
+                return;
+            }
+
+            reportsList.innerHTML = reports.map(r => `
+                <div class="table-row">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-bright);">
+                            ${r.reportedUser?.username || 'Unknown'}
+                            <span class="user-badge ${r.status === 'pending' ? 'badge-pending' : 'badge-approved'}">
+                                ${r.status.toUpperCase()}
+                            </span>
+                        </div>
+                        <div style="font-size: 14px; color: var(--text-muted);">
+                            Reported by: ${r.reportedBy?.username} | ${r.reason}
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                            ${new Date(r.createdAt).toLocaleString()}
+                        </div>
+                    </div>
+                    ${r.status === 'pending' ? `
+                        <div class="action-buttons">
+                            <button class="btn btn-small btn-primary" onclick="resolveReport('${r._id}', 'resolved')">✓ Resolve</button>
+                            <button class="btn btn-small btn-danger" onclick="resolveReport('${r._id}', 'dismissed')">✗ Dismiss</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
         }
     } catch (error) {
         console.error('Error loading reports:', error);
     }
 }
 
-document.getElementById('reportStatusFilter').addEventListener('change', loadReports);
-
-function displayReports(reports) {
-    const list = document.getElementById('reportsList');
-    list.innerHTML = '';
-
-    if (reports.length === 0) {
-        list.innerHTML = '<p>No reports found</p>';
-        return;
-    }
-
-    reports.forEach(report => {
-        const card = document.createElement('div');
-        card.className = 'admin-card';
-        card.innerHTML = `
-            <h3>Report #${report._id.slice(-6)}</h3>
-            <p><strong>Reported User:</strong> ${report.reportedUser?.username || 'Unknown'}</p>
-            <p><strong>Reported By:</strong> ${report.reportedBy?.username || 'Unknown'}</p>
-            <p><strong>Reason:</strong> ${report.reason}</p>
-            <p><strong>Status:</strong> ${report.status}</p>
-            <p><strong>Created:</strong> ${new Date(report.createdAt).toLocaleString()}</p>
-            ${report.status === 'pending' ? `
-                <div style="margin-top: 10px;">
-                    <button class="btn btn-primary" onclick="resolveReport('${report._id}', 'resolved')">Resolve</button>
-                    <button class="btn btn-secondary" onclick="resolveReport('${report._id}', 'dismissed')">Dismiss</button>
-                </div>
-            ` : ''}
-        `;
-        list.appendChild(card);
-    });
-}
-
 async function resolveReport(reportId, status) {
-    const resolution = prompt('Enter resolution notes:');
-    
     try {
         const response = await fetch(`/api/admin/reports/${reportId}`, {
             method: 'PUT',
@@ -207,196 +293,263 @@ async function resolveReport(reportId, status) {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ status, resolution })
+            body: JSON.stringify({ status, resolution: 'Handled by admin' })
         });
 
         if (response.ok) {
-            alert('Report resolved successfully');
+            alert('Report updated');
             loadReports();
+            refreshDashboard();
         }
     } catch (error) {
         console.error('Error resolving report:', error);
-        alert('Failed to resolve report');
     }
 }
 
-// Banned Users
-async function loadBannedUsers() {
+// Bans
+async function loadBans() {
     try {
         const response = await fetch('/api/admin/banned', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.ok) {
-            const users = await response.json();
-            displayBannedUsers(users);
-        }
-    } catch (error) {
-        console.error('Error loading banned users:', error);
-    }
-}
+            const bans = await response.json();
+            const bansList = document.getElementById('bansList');
 
-function displayBannedUsers(users) {
-    const list = document.getElementById('bannedUsersList');
-    list.innerHTML = '';
+            if (bans.length === 0) {
+                bansList.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No banned users</p>';
+                return;
+            }
 
-    if (users.length === 0) {
-        list.innerHTML = '<p>No banned users</p>';
-        return;
-    }
-
-    users.forEach(ban => {
-        const card = document.createElement('div');
-        card.className = 'admin-card';
-        card.innerHTML = `
-            <h3>${ban.user?.username || 'Unknown'}</h3>
-            <p><strong>Name:</strong> ${ban.user?.firstName} ${ban.user?.lastName}</p>
-            <p><strong>MAC Address:</strong> ${ban.macAddress}</p>
-            <p><strong>Reason:</strong> ${ban.reason}</p>
-            <p><strong>Banned By:</strong> ${ban.bannedBy?.username || 'Unknown'}</p>
-            <p><strong>Banned At:</strong> ${new Date(ban.bannedAt).toLocaleString()}</p>
-        `;
-        list.appendChild(card);
-    });
-}
-
-// Teacher Requests
-async function loadTeacherRequests() {
-    const status = document.getElementById('teacherRequestStatusFilter').value;
-    const url = status ? `/api/teacher-access?status=${status}` : '/api/teacher-access';
-    
-    try {
-        const response = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (response.ok) {
-            const requests = await response.json();
-            displayTeacherRequests(requests);
-        }
-    } catch (error) {
-        console.error('Error loading teacher requests:', error);
-    }
-}
-
-document.getElementById('teacherRequestStatusFilter').addEventListener('change', loadTeacherRequests);
-
-function displayTeacherRequests(requests) {
-    const list = document.getElementById('teacherRequestsList');
-    list.innerHTML = '';
-
-    if (requests.length === 0) {
-        list.innerHTML = '<p>No teacher access requests found</p>';
-        return;
-    }
-
-    requests.forEach(request => {
-        const card = document.createElement('div');
-        card.className = 'admin-card';
-        card.innerHTML = `
-            <h3>Request #${request._id.slice(-6)}</h3>
-            <p><strong>Teacher:</strong> ${request.teacher.name} (${request.teacher.email})</p>
-            <p><strong>Student:</strong> ${request.student?.username || 'Unknown'}</p>
-            <p><strong>Reason:</strong> ${request.teacher.reason}</p>
-            <p><strong>Status:</strong> ${request.status}</p>
-            <p><strong>Approvals:</strong> ${request.approvals.length}/3</p>
-            <p><strong>Created:</strong> ${new Date(request.createdAt).toLocaleString()}</p>
-            ${request.status === 'pending' ? `
-                <div style="margin-top: 10px;">
-                    <button class="btn btn-primary" onclick="approveTeacherRequest('${request._id}')">Approve</button>
-                    <button class="btn btn-danger" onclick="denyTeacherRequest('${request._id}')">Deny</button>
+            bansList.innerHTML = bans.map(b => `
+                <div class="table-row">
+                    <div>
+                        <div style="font-weight: 600; color: var(--error-color);">
+                            ${b.user?.username || 'Unknown'}
+                            <span class="user-badge badge-banned">BANNED</span>
+                        </div>
+                        <div style="font-size: 14px; color: var(--text-muted);">
+                            Reason: ${b.reason}
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                            By: ${b.bannedBy?.username} | ${new Date(b.bannedAt).toLocaleString()}
+                        </div>
+                    </div>
                 </div>
-            ` : ''}
-        `;
-        list.appendChild(card);
-    });
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Error loading bans:', error);
+    }
 }
 
-async function approveTeacherRequest(requestId) {
+// Database Stats (Master Admin)
+async function loadDatabaseStats() {
+    if (user.role !== 'master_admin') return;
+
     try {
-        const response = await fetch(`/api/teacher-access/${requestId}/approve`, {
-            method: 'POST',
+        const response = await fetch('/api/admin/stats/database', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.ok) {
-            const data = await response.json();
-            alert(data.message);
-            loadTeacherRequests();
+            const stats = await response.json();
+            const dbStatCards = document.getElementById('dbStatCards');
+
+            const usagePercent = stats.database.percentUsed;
+            const progressClass = usagePercent > 75 ? 'danger' : usagePercent > 50 ? 'warning' : '';
+
+            dbStatCards.innerHTML = `
+                <div class="stat-card ${usagePercent > 75 ? 'danger' : usagePercent > 50 ? 'warning' : 'success'}">
+                    <div class="stat-label">Database Usage</div>
+                    <div class="stat-value">${usagePercent}%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ${progressClass}" style="width: ${usagePercent}%"></div>
+                    </div>
+                    <div class="stat-subtitle">${(stats.database.dataSize / 1024 / 1024).toFixed(2)} MB / 512 MB</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Objects</div>
+                    <div class="stat-value">${stats.database.objects.toLocaleString()}</div>
+                    <div class="stat-subtitle">${stats.database.collections} collections</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Messages</div>
+                    <div class="stat-value">${stats.counts.messages.toLocaleString()}</div>
+                    <div class="stat-subtitle">+${stats.counts.directMessages} DMs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Users & Servers</div>
+                    <div class="stat-value">${stats.counts.users}</div>
+                    <div class="stat-subtitle">${stats.counts.servers} servers, ${stats.counts.channels} channels</div>
+                </div>
+            `;
         }
     } catch (error) {
-        console.error('Error approving request:', error);
-        alert('Failed to approve request');
+        console.error('Error loading database stats:', error);
     }
 }
 
-async function denyTeacherRequest(requestId) {
-    const reason = prompt('Enter reason for denial:');
-    if (!reason) return;
-    
+async function triggerArchive() {
+    if (!confirm('This will archive messages older than 30 days. Continue?')) return;
+
     try {
-        const response = await fetch(`/api/teacher-access/${requestId}/deny`, {
+        const response = await fetch('/api/admin/archive/trigger', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ reason })
+            body: JSON.stringify({ daysOld: 30 })
         });
 
         if (response.ok) {
-            alert('Request denied successfully');
-            loadTeacherRequests();
+            const result = await response.json();
+            alert(`Archive complete!\nMessages archived: ${result.messagesArchived}\nReports archived: ${result.reportsArchived}`);
+            loadDatabaseStats();
+            loadArchiveStats();
         }
     } catch (error) {
-        console.error('Error denying request:', error);
-        alert('Failed to deny request');
+        console.error('Error triggering archive:', error);
     }
 }
 
-// All Messages (Master Admin Only)
-async function loadAllMessages() {
-    const type = document.getElementById('messageTypeFilter').value;
-    
+// Archive Stats (Master Admin)
+async function loadArchiveStats() {
+    if (user.role !== 'master_admin') return;
+
     try {
-        const response = await fetch(`/api/messages/all?type=${type}&limit=50`, {
+        const response = await fetch('/api/admin/stats/database', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.ok) {
-            const messages = await response.json();
-            displayAllMessages(messages);
+            const stats = await response.json();
+            const archiveStatCards = document.getElementById('archiveStatCards');
+
+            if (stats.archive) {
+                archiveStatCards.innerHTML = `
+                    <div class="stat-card success">
+                        <div class="stat-label">Archived Items</div>
+                        <div class="stat-value">${stats.archive.totalArchived}</div>
+                        <div class="stat-subtitle">Total items archived</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Space Saved</div>
+                        <div class="stat-value">${(stats.archive.spaceSaved / 1024 / 1024).toFixed(2)}</div>
+                        <div class="stat-subtitle">MB saved</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Compression</div>
+                        <div class="stat-value">${stats.archive.averageCompression}%</div>
+                        <div class="stat-subtitle">Average compression ratio</div>
+                    </div>
+                `;
+            }
         }
     } catch (error) {
-        console.error('Error loading messages:', error);
+        console.error('Error loading archive stats:', error);
     }
 }
 
-document.getElementById('messageTypeFilter')?.addEventListener('change', loadAllMessages);
+async function searchArchive() {
+    const query = document.getElementById('archiveSearchInput').value;
+    if (!query) return;
 
-function displayAllMessages(messages) {
-    const list = document.getElementById('allMessagesList');
-    list.innerHTML = '';
+    try {
+        const response = await fetch(`/api/admin/archive/search?username=${encodeURIComponent(query)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-    if (messages.length === 0) {
-        list.innerHTML = '<p>No messages found</p>';
-        return;
+        if (response.ok) {
+            const results = await response.json();
+            const resultsDiv = document.getElementById('archiveResults');
+
+            if (results.length === 0) {
+                resultsDiv.innerHTML = '<p style="color: var(--text-muted);">No archived data found</p>';
+                return;
+            }
+
+            resultsDiv.innerHTML = `
+                <h4 style="margin-bottom: 12px;">Found ${results.length} results</h4>
+                ${results.map(r => `
+                    <div class="table-row">
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-bright);">
+                                ${r.author?.username || r.sender?.username || 'Unknown'}
+                                <span class="user-badge">ARCHIVED</span>
+                            </div>
+                            <div style="font-size: 14px; color: var(--text-muted);">
+                                ${r.content ? r.content.substring(0, 100) + '...' : 'No content'}
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                                Archived: ${new Date(r._archivedAt).toLocaleString()}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+    } catch (error) {
+        console.error('Error searching archive:', error);
     }
-
-    messages.forEach(msg => {
-        const card = document.createElement('div');
-        card.className = 'admin-card';
-        const isChannel = msg.author;
-        card.innerHTML = `
-            <p><strong>${isChannel ? 'From' : 'Sender'}:</strong> ${isChannel ? msg.author?.username : msg.sender?.username || 'Unknown'}</p>
-            ${!isChannel ? `<p><strong>To:</strong> ${msg.recipient?.username || 'Unknown'}</p>` : ''}
-            ${isChannel ? `<p><strong>Channel:</strong> ${msg.channel?.name || 'Unknown'}</p>` : ''}
-            <p><strong>Content:</strong> ${msg.content}</p>
-            <p><strong>Time:</strong> ${new Date(msg.createdAt).toLocaleString()}</p>
-        `;
-        list.appendChild(card);
-    });
 }
 
-// Load initial data
-loadPendingUsers();
+// System Health (Master Admin)
+async function loadSystemHealth() {
+    if (user.role !== 'master_admin') return;
+
+    try {
+        const response = await fetch('/api/admin/stats/health', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const health = await response.json();
+            const healthStatCards = document.getElementById('healthStatCards');
+
+            healthStatCards.innerHTML = `
+                <div class="stat-card ${health.health.status === 'healthy' ? 'success' : 'warning'}">
+                    <div class="stat-label">System Status</div>
+                    <div class="stat-value">${health.health.status.toUpperCase()}</div>
+                    <div class="stat-subtitle">Database: ${health.health.databaseUsage}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Memory Usage</div>
+                    <div class="stat-value">${(health.health.memoryUsage.heapUsed / 1024 / 1024).toFixed(0)}</div>
+                    <div class="stat-subtitle">MB used</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Uptime</div>
+                    <div class="stat-value">${Math.floor(health.health.uptime / 3600)}</div>
+                    <div class="stat-subtitle">hours</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Messages (24h)</div>
+                    <div class="stat-value">${health.activity.last24h.messages}</div>
+                    <div class="stat-subtitle">+${health.activity.last24h.directMessages} DMs</div>
+                </div>
+            `;
+
+            const activityChart = document.getElementById('activityChart');
+            activityChart.innerHTML = `
+                <div class="stat-cards">
+                    <div class="stat-card">
+                        <div class="stat-label">New Users</div>
+                        <div class="stat-value">${health.activity.last24h.newUsers}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Messages (7d)</div>
+                        <div class="stat-value">${health.activity.last7d.messages}</div>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading system health:', error);
+    }
+}
+
+// Initialize
+refreshDashboard();

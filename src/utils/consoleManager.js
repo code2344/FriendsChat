@@ -26,6 +26,10 @@ class ConsoleManager {
       reports: this.listReports.bind(this),
       bans: this.listBans.bind(this),
       stats: this.showStats.bind(this),
+      'db:stats': this.showDatabaseStats.bind(this),
+      'archive:run': this.runArchive.bind(this),
+      'archive:search': this.searchArchive.bind(this),
+      'archive:stats': this.archiveStats.bind(this),
       clear: this.clearScreen.bind(this),
       exit: this.exitConsole.bind(this)
     };
@@ -92,6 +96,12 @@ class ConsoleManager {
     console.log('\x1b[32mModeration:\x1b[0m');
     console.log('  reports                  - List all reports');
     console.log('  bans                     - List all banned users\n');
+    
+    console.log('\x1b[32mDatabase & Archive:\x1b[0m');
+    console.log('  db:stats                 - Show database size and usage');
+    console.log('  archive:run [days]       - Archive old messages (default 30 days)');
+    console.log('  archive:search <query>   - Search archived data');
+    console.log('  archive:stats            - Show archive statistics\n');
     
     console.log('\x1b[32mSystem:\x1b[0m');
     console.log('  stats                    - Show system statistics');
@@ -348,6 +358,102 @@ class ConsoleManager {
     console.log(`  Messages:          ${messageCount}`);
     console.log(`  Direct Messages:   ${dmCount}`);
     console.log(`  Pending Reports:   \x1b[33m${reportCount}\x1b[0m`);
+    console.log('');
+  }
+
+  async showDatabaseStats() {
+    const archiveManager = require('./archiveManager');
+    const stats = await archiveManager.getDatabaseStats();
+
+    if (!stats) {
+      console.log('\x1b[31mFailed to retrieve database stats\x1b[0m');
+      return;
+    }
+
+    console.log('\n\x1b[36m═══ Database Statistics ═══\x1b[0m');
+    console.log(`  Data Size:         ${(stats.dataSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`  Storage Size:      ${(stats.storageSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`  Index Size:        ${(stats.indexSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`  Total Size:        ${(stats.totalSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`  Usage:             \x1b[${stats.percentUsed > 75 ? '31' : '32'}m${stats.percentUsed}%\x1b[0m of 512 MB`);
+    console.log(`  Collections:       ${stats.collections}`);
+    console.log(`  Objects:           ${stats.objects}`);
+    console.log(`  Avg Object Size:   ${(stats.avgObjSize / 1024).toFixed(2)} KB`);
+    
+    if (stats.percentUsed > 75) {
+      console.log(`\n  \x1b[33m⚠ Warning: Database is at ${stats.percentUsed}% capacity. Consider running archive:run\x1b[0m`);
+    }
+    console.log('');
+  }
+
+  async runArchive(args) {
+    const days = parseInt(args[0]) || 30;
+    
+    console.log(`\x1b[36mStarting archive process for messages older than ${days} days...\x1b[0m`);
+    
+    const archiveManager = require('./archiveManager');
+    const messagesArchived = await archiveManager.archiveOldMessages(days);
+    const reportsArchived = await archiveManager.archiveOldReports(60);
+
+    console.log(`\x1b[32m✓ Archive complete!\x1b[0m`);
+    console.log(`  Messages archived: ${messagesArchived}`);
+    console.log(`  Reports archived:  ${reportsArchived}\n`);
+  }
+
+  async searchArchive(args) {
+    if (args.length === 0) {
+      console.log('\x1b[31mUsage: archive:search <username|type>\x1b[0m');
+      console.log('Example: archive:search username=john');
+      console.log('Example: archive:search type=message');
+      return;
+    }
+
+    const archiveManager = require('./archiveManager');
+    const query = {};
+
+    // Parse search parameters
+    args.forEach(arg => {
+      const [key, value] = arg.split('=');
+      if (key && value) {
+        query[key] = value;
+      }
+    });
+
+    const results = await archiveManager.searchArchived(query);
+
+    console.log(`\n\x1b[36m═══ Archive Search Results (${results.length}) ═══\x1b[0m`);
+    results.slice(0, 10).forEach(item => {
+      console.log(`  [ARCHIVED] ${item.author?.username || item.sender?.username || 'Unknown'}`);
+      if (item.content) {
+        console.log(`    ${item.content.substring(0, 80)}...`);
+      }
+      console.log(`    Archived: ${new Date(item._archivedAt).toLocaleDateString()}\n`);
+    });
+
+    if (results.length > 10) {
+      console.log(`  ... and ${results.length - 10} more results\n`);
+    }
+  }
+
+  async archiveStats() {
+    const archiveManager = require('./archiveManager');
+    const stats = await archiveManager.getArchiveStats();
+
+    if (!stats) {
+      console.log('\x1b[31mFailed to retrieve archive stats\x1b[0m');
+      return;
+    }
+
+    console.log('\n\x1b[36m═══ Archive Statistics ═══\x1b[0m');
+    console.log(`  Total Archived:    ${stats.totalArchived} items`);
+    console.log(`  Space Saved:       ${(stats.spaceSaved / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`  Avg Compression:   ${stats.averageCompression}%`);
+    
+    console.log('\n  By Type:');
+    stats.byType.forEach(type => {
+      const saved = type.totalSize - type.totalCompressed;
+      console.log(`    ${type._id}: ${type.count} items (${(saved / 1024).toFixed(2)} KB saved)`);
+    });
     console.log('');
   }
 
