@@ -17,9 +17,16 @@ router.put('/:serverId/settings', authenticate, serverController.updateServerSet
 // Server invite routes
 router.post('/:serverId/invite', authenticate, serverController.createInvite);
 router.post('/join/invite', authenticate, serverController.joinWithInvite);
+router.post('/:serverId/invite-user', authenticate, serverController.inviteUser);
 
 // Member management
+router.get('/:serverId/members', authenticate, serverController.getServerMembers);
 router.post('/:serverId/member/:userId', authenticate, serverController.addMember);
+router.delete('/:serverId/member/:userId', authenticate, serverController.removeMember);
+router.put('/:serverId/member/:userId/role', authenticate, serverController.updateMemberRole);
+
+// Ownership
+router.post('/:serverId/transfer/:userId', authenticate, serverController.transferOwnership);
 
 // Role management
 router.post('/:serverId/roles', authenticate, serverController.createRole);

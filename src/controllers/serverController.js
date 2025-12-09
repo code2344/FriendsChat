@@ -546,6 +546,293 @@ async function getPublicServers(req, res) {
   }
 }
 
+/**
+ * Invite specific user to server (by username/ID)
+ */
+async function inviteUser(req, res) {
+  try {
+    const { serverId } = req.params;
+    const { username, userId } = req.body;
+
+    if (!username && !userId) {
+      return res.status(400).json({ error: 'Username or user ID is required' });
+    }
+
+    const server = await Server.findById(serverId);
+    if (!server) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+
+    // Check permissions
+    const canInvite = server.owner.equals(req.user._id) || 
+                      server.coOwners.includes(req.user._id) ||
+                      server.moderators.includes(req.user._id) ||
+                      server.members.includes(req.user._id);
+
+    if (!canInvite) {
+      return res.status(403).json({ error: 'You must be a member to invite users' });
+    }
+
+    // Find the user to invite
+    const User = require('../models/User');
+    const targetUser = userId 
+      ? await User.findById(userId) 
+      : await User.findOne({ username });
+
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!targetUser.isApproved) {
+      return res.status(400).json({ error: 'User is not approved yet' });
+    }
+
+    // Check if already a member
+    if (server.members.includes(targetUser._id)) {
+      return res.status(400).json({ error: 'User is already a member' });
+    }
+
+    // Check if banned
+    const isBanned = server.bannedUsers.some(ban => ban.user.equals(targetUser._id));
+    if (isBanned) {
+      return res.status(400).json({ error: 'User is banned from this server' });
+    }
+
+    // Create a pending invite notification (we'll store this in user's document or create an Invite model)
+    // For now, auto-add them
+    server.members.push(targetUser._id);
+    await server.save();
+
+    res.json({ 
+      message: `${targetUser.username} has been added to the server`,
+      user: {
+        id: targetUser._id,
+        username: targetUser.username,
+        firstName: targetUser.firstName,
+        lastName: targetUser.lastName
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to invite user', details: error.message });
+  }
+}
+
+/**
+ * Remove member from server
+ */
+async function removeMember(req, res) {
+  try {
+    const { serverId, userId } = req.params;
+
+    const server = await Server.findById(serverId);
+    if (!server) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+
+    // Check permissions (owner, co-owners, or moderators can remove members)
+    const canRemove = server.owner.equals(req.user._id) || 
+                      server.coOwners.includes(req.user._id) ||
+                      server.moderators.includes(req.user._id);
+
+    if (!canRemove) {
+      return res.status(403).json({ error: 'Insufficient permissions to remove members' });
+    }
+
+    // Cannot remove owner
+    if (server.owner.equals(userId)) {
+      return res.status(400).json({ error: 'Cannot remove server owner' });
+    }
+
+    // Remove from all role arrays
+    server.members = server.members.filter(m => !m.equals(userId));
+    server.coOwners = server.coOwners.filter(m => !m.equals(userId));
+    server.moderators = server.moderators.filter(m => !m.equals(userId));
+    server.memberRoles = server.memberRoles.filter(mr => !mr.user.equals(userId));
+
+    await server.save();
+
+    res.json({ message: 'Member removed successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to remove member', details: error.message });
+  }
+}
+
+/**
+ * Get server members with their roles
+ */
+async function getServerMembers(req, res) {
+  try {
+    const { serverId } = req.params;
+
+    const server = await Server.findById(serverId)
+      .populate('owner', 'username firstName lastName')
+      .populate('members', 'username firstName lastName')
+      .populate('coOwners', 'username firstName lastName')
+      .populate('moderators', 'username firstName lastName');
+
+    if (!server) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+
+    // Check if user has access
+    const hasAccess = req.user.role === 'admin' || 
+                      req.user.role === 'master_admin' ||
+                      server.members.some(m => m._id.equals(req.user._id)) ||
+                      server.owner.equals(req.user._id);
+
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Build member list with roles
+    const memberList = server.members.map(member => {
+      const isOwner = server.owner._id.equals(member._id);
+      const isCoOwner = server.coOwners.some(co => co._id.equals(member._id));
+      const isModerator = server.moderators.some(mod => mod._id.equals(member._id));
+      const memberRoles = server.memberRoles.find(mr => mr.user.equals(member._id));
+
+      let role = 'Member';
+      if (isOwner) role = 'Owner';
+      else if (isCoOwner) role = 'Co-Owner';
+      else if (isModerator) role = 'Moderator';
+
+      return {
+        id: member._id,
+        username: member.username,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        role,
+        customRoles: memberRoles ? memberRoles.roles : []
+      };
+    });
+
+    res.json({
+      server: {
+        id: server._id,
+        name: server.name,
+        description: server.description,
+        icon: server.icon,
+        banner: server.banner,
+        theme: server.theme,
+        isPublic: server.isPublic
+      },
+      members: memberList,
+      totalMembers: memberList.length
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch server members', details: error.message });
+  }
+}
+
+/**
+ * Update member role (promote/demote)
+ */
+async function updateMemberRole(req, res) {
+  try {
+    const { serverId, userId } = req.params;
+    const { action } = req.body; // 'promote-coowner', 'promote-moderator', 'demote'
+
+    const server = await Server.findById(serverId);
+    if (!server) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+
+    // Only owner and co-owners can manage roles
+    const canManage = server.owner.equals(req.user._id) || 
+                      server.coOwners.includes(req.user._id);
+
+    if (!canManage) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
+    // Cannot modify owner
+    if (server.owner.equals(userId)) {
+      return res.status(400).json({ error: 'Cannot modify owner role' });
+    }
+
+    // Ensure user is a member
+    if (!server.members.includes(userId)) {
+      return res.status(400).json({ error: 'User is not a member' });
+    }
+
+    switch(action) {
+      case 'promote-coowner':
+        if (!server.owner.equals(req.user._id)) {
+          return res.status(403).json({ error: 'Only owner can promote co-owners' });
+        }
+        if (!server.coOwners.includes(userId)) {
+          server.coOwners.push(userId);
+        }
+        // Remove from moderators if present
+        server.moderators = server.moderators.filter(m => !m.equals(userId));
+        break;
+
+      case 'promote-moderator':
+        if (!server.moderators.includes(userId)) {
+          server.moderators.push(userId);
+        }
+        // Remove from co-owners if present (demotion)
+        server.coOwners = server.coOwners.filter(m => !m.equals(userId));
+        break;
+
+      case 'demote':
+        server.coOwners = server.coOwners.filter(m => !m.equals(userId));
+        server.moderators = server.moderators.filter(m => !m.equals(userId));
+        break;
+
+      default:
+        return res.status(400).json({ error: 'Invalid action' });
+    }
+
+    await server.save();
+    res.json({ message: 'Member role updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update member role', details: error.message });
+  }
+}
+
+/**
+ * Transfer server ownership
+ */
+async function transferOwnership(req, res) {
+  try {
+    const { serverId, userId } = req.params;
+
+    const server = await Server.findById(serverId);
+    if (!server) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+
+    // Only current owner can transfer
+    if (!server.owner.equals(req.user._id)) {
+      return res.status(403).json({ error: 'Only the owner can transfer ownership' });
+    }
+
+    // New owner must be a member
+    if (!server.members.includes(userId)) {
+      return res.status(400).json({ error: 'New owner must be a member of the server' });
+    }
+
+    // Transfer ownership
+    const oldOwner = server.owner;
+    server.owner = userId;
+
+    // Make old owner a co-owner
+    if (!server.coOwners.includes(oldOwner)) {
+      server.coOwners.push(oldOwner);
+    }
+
+    // Remove new owner from co-owners/moderators
+    server.coOwners = server.coOwners.filter(m => !m.equals(userId));
+    server.moderators = server.moderators.filter(m => !m.equals(userId));
+
+    await server.save();
+    res.json({ message: 'Ownership transferred successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to transfer ownership', details: error.message });
+  }
+}
+
 module.exports = {
   createServer,
   getUserServers,
@@ -561,5 +848,10 @@ module.exports = {
   createRole,
   assignRole,
   addMember,
-  getPublicServers
+  getPublicServers,
+  inviteUser,
+  removeMember,
+  getServerMembers,
+  updateMemberRole,
+  transferOwnership
 };

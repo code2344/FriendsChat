@@ -134,6 +134,18 @@ async function switchToServer(serverId) {
     document.getElementById('serverChannelsView').style.display = 'block';
     document.getElementById('inviteBtn').style.display = 'block';
 
+    // Show server settings if owner/co-owner
+    const isOwner = server.owner._id === user.id || server.owner === user.id;
+    const isCoOwner = server.coOwners && server.coOwners.some(co => co._id === user.id || co === user.id);
+    
+    if (isOwner || isCoOwner) {
+        document.getElementById('serverSettingsBtn').style.display = 'block';
+        document.getElementById('manageMembersBtn').style.display = 'block';
+    } else {
+        document.getElementById('serverSettingsBtn').style.display = 'none';
+        document.getElementById('manageMembersBtn').style.display = 'none';
+    }
+
     // Load channels
     await loadChannels(serverId);
 }
@@ -519,6 +531,12 @@ function displayUserSearchResults(users) {
 // Server Invite
 async function createServerInvite() {
     if (!currentServer) return;
+    openModal('inviteUserModal');
+    await generateNewInviteCode();
+}
+
+async function generateNewInviteCode() {
+    if (!currentServer) return;
 
     try {
         const response = await fetch(`/api/servers/${currentServer}/invite`, {
@@ -528,8 +546,7 @@ async function createServerInvite() {
 
         if (response.ok) {
             const data = await response.json();
-            document.getElementById('inviteCodeDisplay').textContent = data.code;
-            openModal('inviteModal');
+            document.getElementById('inviteCodeDisplay2').textContent = data.code;
         }
     } catch (error) {
         console.error('Error creating invite:', error);
@@ -543,7 +560,90 @@ function copyInviteCode() {
     });
 }
 
+function copyInviteCode2() {
+    const code = document.getElementById('inviteCodeDisplay2').textContent;
+    if (code === 'Click to generate code') {
+        generateNewInviteCode();
+        return;
+    }
+    navigator.clipboard.writeText(code).then(() => {
+        alert('Invite code copied to clipboard!');
+    });
+}
+
 window.copyInviteCode = copyInviteCode;
+window.copyInviteCode2 = copyInviteCode2;
+window.generateNewInviteCode = generateNewInviteCode;
+
+// Individual user invite search
+document.getElementById('inviteUserSearchInput')?.addEventListener('input', async (e) => {
+    const query = e.target.value.trim();
+    
+    if (query.length < 2) {
+        document.getElementById('inviteUserSearchResults').innerHTML = '';
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/auth/search-users?query=${encodeURIComponent(query)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const users = await response.json();
+            displayInviteUserSearchResults(users);
+        }
+    } catch (error) {
+        console.error('Error searching users:', error);
+    }
+});
+
+function displayInviteUserSearchResults(users) {
+    const resultsDiv = document.getElementById('inviteUserSearchResults');
+    resultsDiv.innerHTML = '';
+
+    users.forEach(u => {
+        const userItem = document.createElement('div');
+        userItem.className = 'user-search-item';
+        userItem.innerHTML = `
+            <div class="search-user-avatar">${u.username[0].toUpperCase()}</div>
+            <div class="search-user-info">
+                <div class="search-user-name">${u.username}</div>
+                <div class="search-user-id">${u.firstName} ${u.lastName}</div>
+            </div>
+        `;
+        userItem.onclick = () => inviteUserToServer(u._id, u.username);
+        resultsDiv.appendChild(userItem);
+    });
+}
+
+async function inviteUserToServer(userId, username) {
+    if (!currentServer) return;
+
+    try {
+        const response = await fetch(`/api/servers/${currentServer}/invite-user`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ userId })
+        });
+
+        if (response.ok) {
+            alert(`${username} has been invited to the server!`);
+            closeModal('inviteUserModal');
+            document.getElementById('inviteUserSearchInput').value = '';
+            document.getElementById('inviteUserSearchResults').innerHTML = '';
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Failed to invite user');
+        }
+    } catch (error) {
+        console.error('Error inviting user:', error);
+        alert('Failed to invite user');
+    }
+}
 
 // Join Server with Invite
 document.getElementById('joinServerForm')?.addEventListener('submit', async (e) => {
@@ -600,3 +700,208 @@ document.addEventListener('click', (e) => {
 
 // Initialize on load
 initializeUI();
+
+// Server Settings and Member Management
+document.getElementById('serverSettingsBtn')?.addEventListener('click', () => {
+    document.getElementById('serverMenu').style.display = 'none';
+    openServerSettings();
+});
+
+document.getElementById('manageMembersBtn')?.addEventListener('click', () => {
+    document.getElementById('serverMenu').style.display = 'none';
+    openManageMembers();
+});
+
+async function openServerSettings() {
+    if (!currentServer) return;
+
+    try {
+        const response = await fetch(`/api/servers/${currentServer}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const server = await response.json();
+            document.getElementById('settingsServerName').value = server.name;
+            document.getElementById('settingsServerDescription').value = server.description || '';
+            document.getElementById('settingsServerIcon').value = server.icon || '';
+            document.getElementById('settingsServerBanner').value = server.banner || '';
+            document.getElementById('settingsThemeColor').value = server.theme?.primaryColor || '#5865f2';
+            openModal('serverSettingsModal');
+        }
+    } catch (error) {
+        console.error('Error loading server settings:', error);
+    }
+}
+
+document.getElementById('serverSettingsForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (!currentServer) return;
+
+    const settings = {
+        description: document.getElementById('settingsServerDescription').value,
+        icon: document.getElementById('settingsServerIcon').value,
+        banner: document.getElementById('settingsServerBanner').value,
+        theme: {
+            primaryColor: document.getElementById('settingsThemeColor').value
+        }
+    };
+
+    try {
+        const response = await fetch(`/api/servers/${currentServer}/settings`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+        });
+
+        if (response.ok) {
+            alert('Server settings updated!');
+            closeModal('serverSettingsModal');
+            await loadServers();
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Failed to update settings');
+        }
+    } catch (error) {
+        console.error('Error updating server settings:', error);
+        alert('Failed to update settings');
+    }
+});
+
+async function openManageMembers() {
+    if (!currentServer) return;
+    openModal('manageMembersModal');
+    await loadServerMembers();
+}
+
+async function loadServerMembers() {
+    if (!currentServer) return;
+
+    try {
+        const response = await fetch(`/api/servers/${currentServer}/members`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            displayServerMembers(data.members);
+        }
+    } catch (error) {
+        console.error('Error loading members:', error);
+    }
+}
+
+function displayServerMembers(members) {
+    const membersList = document.getElementById('membersList');
+    
+    if (members.length === 0) {
+        membersList.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No members</p>';
+        return;
+    }
+
+    membersList.innerHTML = members.map(member => {
+        const roleColor = member.role === 'Owner' ? 'var(--error-color)' : 
+                         member.role === 'Co-Owner' ? 'var(--warning-color)' : 
+                         member.role === 'Moderator' ? 'var(--primary-color)' : 
+                         'var(--text-muted)';
+
+        return `
+            <div class="table-row" style="padding: 12px; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                    <div class="user-avatar" style="width: 36px; height: 36px;">
+                        ${member.username[0].toUpperCase()}
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-bright);">
+                            ${member.username}
+                        </div>
+                        <div style="font-size: 12px; color: ${roleColor};">
+                            ${member.role}
+                        </div>
+                    </div>
+                </div>
+                ${member.role !== 'Owner' ? `
+                    <div class="action-buttons">
+                        ${member.role === 'Member' ? `
+                            <button class="btn btn-small btn-primary" onclick="promoteMember('${member.id}', 'promote-moderator')">
+                                👮 Make Moderator
+                            </button>
+                        ` : ''}
+                        ${member.role === 'Moderator' ? `
+                            <button class="btn btn-small btn-primary" onclick="promoteMember('${member.id}', 'promote-coowner')">
+                                ⭐ Make Co-Owner
+                            </button>
+                            <button class="btn btn-small btn-secondary" onclick="promoteMember('${member.id}', 'demote')">
+                                ⬇️ Demote
+                            </button>
+                        ` : ''}
+                        ${member.role === 'Co-Owner' ? `
+                            <button class="btn btn-small btn-secondary" onclick="promoteMember('${member.id}', 'demote')">
+                                ⬇️ Demote
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-small btn-danger" onclick="removeMemberFromServer('${member.id}', '${member.username}')">
+                            ✗ Remove
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+async function promoteMember(userId, action) {
+    if (!currentServer) return;
+
+    try {
+        const response = await fetch(`/api/servers/${currentServer}/member/${userId}/role`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action })
+        });
+
+        if (response.ok) {
+            alert('Member role updated!');
+            await loadServerMembers();
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Failed to update role');
+        }
+    } catch (error) {
+        console.error('Error updating member role:', error);
+        alert('Failed to update role');
+    }
+}
+
+async function removeMemberFromServer(userId, username) {
+    if (!confirm(`Remove ${username} from the server?`)) return;
+
+    try {
+        const response = await fetch(`/api/servers/${currentServer}/member/${userId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            alert('Member removed');
+            await loadServerMembers();
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Failed to remove member');
+        }
+    } catch (error) {
+        console.error('Error removing member:', error);
+        alert('Failed to remove member');
+    }
+}
+
+window.promoteMember = promoteMember;
+window.removeMemberFromServer = removeMemberFromServer;
+window.loadServerMembers = loadServerMembers;
