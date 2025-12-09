@@ -6,6 +6,7 @@ const cors = require('cors');
 const path = require('path');
 const connectDB = require('./config/database');
 const { initializeMasterAdmin } = require('./utils/initMasterAdmin');
+const ConsoleManager = require('./utils/consoleManager');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -107,8 +108,13 @@ async function startServer() {
     
     // Start server
     server.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`\x1b[32m✓ Server running on port ${PORT}\x1b[0m`);
+      console.log(`\x1b[32m✓ Environment: ${process.env.NODE_ENV || 'development'}\x1b[0m`);
+      console.log(`\x1b[32m✓ Access the app at: http://localhost:${PORT}\x1b[0m`);
+      
+      // Initialize console after server starts
+      const consoleManager = new ConsoleManager();
+      consoleManager.initialize();
     });
   } catch (error) {
     console.error('Failed to start server:', error);

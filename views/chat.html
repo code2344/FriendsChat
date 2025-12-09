@@ -3,94 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat - FriendsChat</title>
+    <title>FriendsChat</title>
     <link rel="stylesheet" href="/css/main.css">
 </head>
 <body>
     <div class="chat-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>FriendsChat</h2>
-                <div id="userInfo"></div>
+        <!-- Server Icons Sidebar -->
+        <div class="servers-sidebar">
+            <div class="server-icon home-icon active" id="homeServerIcon" title="Home">
+                <svg width="28" height="20" viewBox="0 0 28 20" fill="currentColor">
+                    <path d="M23.0212 1.67671C21.3107 0.879656 19.5079 0.318797 17.6584 0C17.4062 0.461742 17.1749 0.934541 16.9708 1.4184C15.003 1.12145 12.9974 1.12145 11.0283 1.4184C10.8242 0.934541 10.5929 0.461744 10.3407 0C8.49103 0.318797 6.68821 0.879656 4.97779 1.67671C0.717733 7.98849 -0.378895 14.1433 0.215709 20.2018C2.35653 21.7936 4.6898 23.0506 7.15654 23.9381C7.71629 23.2134 8.22086 22.4454 8.66647 21.6407C7.9069 21.3612 7.17188 21.0195 6.47107 20.6195C6.63898 20.4986 6.80412 20.3724 6.96571 20.2424C12.3986 22.7691 18.5173 22.7691 23.8834 20.2424C24.045 20.3724 24.2102 20.4986 24.3781 20.6195C23.6772 21.0195 22.9422 21.3612 22.1827 21.6407C22.6283 22.4454 23.1329 23.2134 23.6926 23.9381C26.1594 23.0506 28.4926 21.7936 30.6334 20.2018C31.3181 13.1932 29.4909 7.09398 25.0636 1.67671H23.0212ZM10.2527 16.5383C8.73376 16.5383 7.49382 15.1483 7.49382 13.4452C7.49382 11.7422 8.70276 10.3469 10.2527 10.3469C11.8026 10.3469 13.0389 11.7422 13.0116 13.4452C13.0116 15.1483 11.8026 16.5383 10.2527 16.5383ZM20.5974 16.5383C19.0784 16.5383 17.8385 15.1483 17.8385 13.4452C17.8385 11.7422 19.0474 10.3469 20.5974 10.3469C22.1473 10.3469 23.3836 11.7422 23.3563 13.4452C23.3563 15.1483 22.1473 16.5383 20.5974 16.5383Z"/>
+                </svg>
+            </div>
+            <div class="server-separator"></div>
+            <div id="serverIconsList"></div>
+            <div class="server-icon add-server" id="addServerIcon" title="Add Server">+</div>
+        </div>
+
+        <!-- Channels Sidebar -->
+        <div class="channels-sidebar">
+            <div class="server-header" id="serverHeader">
+                <span class="server-name" id="currentServerName">Home</span>
+                <span class="server-dropdown-icon">▾</span>
+            </div>
+            
+            <div class="channels-container">
+                <div id="homeView">
+                    <div class="channel-category">
+                        <div class="category-header">
+                            <span class="category-name">Direct Messages</span>
+                        </div>
+                        <div id="dmChannelsList"></div>
+                        <div class="channel-item" id="newDmBtn">
+                            <span class="channel-icon">+</span>
+                            <span class="channel-name">New Direct Message</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="serverChannelsView" style="display: none;">
+                    <div class="channel-category">
+                        <div class="category-header">
+                            <span class="category-name">Text Channels</span>
+                            <span class="category-icon" id="addChannelBtn">+</span>
+                        </div>
+                        <div id="channelsList"></div>
+                    </div>
+                </div>
             </div>
 
-            <div class="server-list">
-                <h3>Servers</h3>
-                <button id="createServerBtn" class="btn btn-small">+ Create Server</button>
-                <div id="serversList"></div>
+            <div class="user-area">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar"></div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName"></div>
+                        <div class="user-status" id="userStatus">Online</div>
+                    </div>
+                </div>
+                <div class="user-actions">
+                    <button class="user-action-btn tooltip" id="adminPanelBtn" style="display: none;" title="Admin Panel">
+                        ⚙
+                        <span class="tooltiptext">Admin Panel</span>
+                    </button>
+                    <button class="user-action-btn tooltip" id="logoutBtn" title="Logout">
+                        ↪
+                        <span class="tooltiptext">Logout</span>
+                    </button>
+                </div>
             </div>
-
-            <div class="dm-list">
-                <h3>Direct Messages</h3>
-                <div id="dmList"></div>
-            </div>
-
-            <div class="sidebar-footer">
-                <button id="adminPanelBtn" class="btn btn-small" style="display: none;">Admin Panel</button>
-                <button id="logoutBtn" class="btn btn-small btn-danger">Logout</button>
-            </div>
-        </aside>
+        </div>
 
         <!-- Main Chat Area -->
-        <main class="chat-main">
-            <div class="channel-sidebar">
-                <div id="channelHeader">
-                    <h3 id="serverName">Select a server</h3>
-                    <button id="createChannelBtn" class="btn btn-small" style="display: none;">+ Channel</button>
+        <div class="chat-main">
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <span class="channel-hash" id="channelHash">#</span>
+                    <span class="channel-title" id="channelTitle">Welcome</span>
+                    <div class="channel-divider"></div>
+                    <span class="channel-topic" id="channelTopic">Select a channel to start chatting</span>
                 </div>
-                <div id="channelList"></div>
+                <div class="chat-header-actions">
+                    <button class="header-action-btn" id="inviteBtn" style="display: none;" title="Invite">
+                        ➕
+                    </button>
+                </div>
             </div>
 
-            <div class="chat-area">
-                <div id="chatHeader">
-                    <h3 id="channelName">Welcome</h3>
+            <div class="message-area" id="messageArea">
+                <div class="welcome-message">
+                    <h2>Welcome to FriendsChat!</h2>
+                    <p>Select a channel or start a direct message to begin chatting.</p>
                 </div>
+            </div>
 
-                <div id="messageArea" class="message-area">
-                    <p class="welcome-message">Select a channel or start a direct message to begin chatting.</p>
-                </div>
-
-                <div class="message-input-area">
+            <div class="message-input-container">
+                <div class="message-input-wrapper">
                     <form id="messageForm">
                         <input type="text" id="messageInput" placeholder="Type a message..." disabled>
-                        <button type="submit" class="btn btn-primary" disabled>Send</button>
+                        <button type="submit" class="message-send-btn" disabled>
+                            ➤
+                        </button>
                     </form>
                 </div>
             </div>
-        </main>
+        </div>
     </div>
 
-    <!-- Modals -->
+    <!-- Create Server Modal -->
     <div id="createServerModal" class="modal" style="display: none;">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Create Server</h2>
+            <div class="modal-header">
+                <h2 class="modal-title">Create Server</h2>
+                <button class="modal-close" onclick="closeModal('createServerModal')">×</button>
+            </div>
             <form id="createServerForm">
-                <div class="form-group">
-                    <label for="serverName">Server Name</label>
-                    <input type="text" id="serverNameInput" required>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="serverNameInput">Server Name</label>
+                        <input type="text" id="serverNameInput" class="user-search-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="serverDescription">Description (optional)</label>
+                        <textarea id="serverDescription" class="user-search-input" rows="3"></textarea>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="serverDescription">Description (optional)</label>
-                    <textarea id="serverDescription"></textarea>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createServerModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
                 </div>
-                <button type="submit" class="btn btn-primary">Create</button>
             </form>
         </div>
     </div>
 
+    <!-- Create Channel Modal -->
     <div id="createChannelModal" class="modal" style="display: none;">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Create Channel</h2>
+            <div class="modal-header">
+                <h2 class="modal-title">Create Channel</h2>
+                <button class="modal-close" onclick="closeModal('createChannelModal')">×</button>
+            </div>
             <form id="createChannelForm">
-                <div class="form-group">
-                    <label for="channelName">Channel Name</label>
-                    <input type="text" id="channelNameInput" required>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="channelNameInput">Channel Name</label>
+                        <input type="text" id="channelNameInput" class="user-search-input" required>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Create</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createChannelModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                </div>
             </form>
+        </div>
+    </div>
+
+    <!-- New DM Modal -->
+    <div id="newDmModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">New Direct Message</h2>
+                <button class="modal-close" onclick="closeModal('newDmModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="user-search-container">
+                    <input type="text" id="userSearchInput" class="user-search-input" placeholder="Search users...">
+                </div>
+                <div class="user-search-results" id="userSearchResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invite Modal -->
+    <div id="inviteModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Invite to Server</h2>
+                <button class="modal-close" onclick="closeModal('inviteModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <p>Share this invite code with others to join the server:</p>
+                <div class="invite-code-display" id="inviteCodeDisplay">Loading...</div>
+                <button class="btn btn-primary copy-invite-btn" onclick="copyInviteCode()">Copy Invite Code</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Join Server Modal -->
+    <div id="joinServerModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Join Server</h2>
+                <button class="modal-close" onclick="closeModal('joinServerModal')">×</button>
+            </div>
+            <form id="joinServerForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="inviteCodeInput">Invite Code</label>
+                        <input type="text" id="inviteCodeInput" class="user-search-input" placeholder="Enter invite code" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('joinServerModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Join</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Server Menu -->
+    <div id="serverMenu" class="server-menu" style="display: none;">
+        <div class="server-menu-item" id="inviteMenuBtn">
+            <span>➕</span>
+            <span>Invite People</span>
+        </div>
+        <div class="server-menu-separator"></div>
+        <div class="server-menu-item" id="leaveServerBtn">
+            <span>🚪</span>
+            <span>Leave Server</span>
         </div>
     </div>
 

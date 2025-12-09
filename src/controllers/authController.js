@@ -187,10 +187,41 @@ async function denyUser(req, res) {
   }
 }
 
+/**
+ * Search users for DM
+ */
+async function searchUsers(req, res) {
+  try {
+    const { query } = req.query;
+    
+    if (!query || query.length < 2) {
+      return res.json([]);
+    }
+
+    const users = await User.find({
+      isApproved: true,
+      isBanned: false,
+      _id: { $ne: req.user._id }, // Exclude current user
+      $or: [
+        { username: { $regex: query, $options: 'i' } },
+        { firstName: { $regex: query, $options: 'i' } },
+        { lastName: { $regex: query, $options: 'i' } }
+      ]
+    })
+    .select('username firstName lastName')
+    .limit(10);
+
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to search users', details: error.message });
+  }
+}
+
 module.exports = {
   register,
   login,
   getPendingUsers,
   approveUser,
-  denyUser
+  denyUser,
+  searchUsers
 };

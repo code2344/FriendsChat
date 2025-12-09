@@ -7,6 +7,9 @@ const { authenticate, isAdmin } = require('../middleware/auth');
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 
+// Authenticated routes
+router.get('/search-users', authenticate, authController.searchUsers);
+
 // Admin routes
 router.get('/pending-users', authenticate, isAdmin, authController.getPendingUsers);
 router.post('/approve/:userId', authenticate, isAdmin, authController.approveUser);
