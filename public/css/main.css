@@ -1,0 +1,489 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #5865f2;
+    --secondary-color: #7289da;
+    --background: #36393f;
+    --background-light: #40444b;
+    --text-color: #dcddde;
+    --text-muted: #72767d;
+    --error-color: #ed4245;
+    --success-color: #3ba55d;
+    --warning-color: #faa61a;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--background);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header */
+header {
+    text-align: center;
+    padding: 40px 20px;
+    background-color: var(--background-light);
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.tagline {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+}
+
+/* Buttons */
+.btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #4752c4;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5b6eae;
+}
+
+.btn-danger {
+    background-color: var(--error-color);
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c03537;
+}
+
+.btn-small {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+}
+
+/* Home Page */
+.home main {
+    background-color: var(--background-light);
+    padding: 30px;
+    border-radius: 8px;
+}
+
+.welcome {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.welcome h2 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.features {
+    margin-bottom: 40px;
+}
+
+.features h3 {
+    color: var(--secondary-color);
+    margin-bottom: 15px;
+}
+
+.features ul {
+    list-style: none;
+    padding-left: 20px;
+}
+
+.features li {
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.actions {
+    text-align: center;
+    margin: 40px 0;
+}
+
+.actions .btn {
+    margin: 0 10px;
+}
+
+.legal-links {
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--text-muted);
+}
+
+.legal-links a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.legal-links a:hover {
+    text-decoration: underline;
+}
+
+.notice {
+    background-color: var(--warning-color);
+    color: #000;
+    padding: 15px;
+    border-radius: 4px;
+    margin: 20px 0;
+}
+
+/* Auth Pages */
+.auth-page {
+    max-width: 500px;
+}
+
+.auth-form {
+    background-color: var(--background-light);
+    padding: 30px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--text-muted);
+    border-radius: 4px;
+    background-color: var(--background);
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.form-group small {
+    display: block;
+    margin-top: 5px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: auto;
+    margin-right: 10px;
+}
+
+.checkbox-group label {
+    margin-bottom: 0;
+}
+
+.auth-links {
+    text-align: center;
+    background-color: var(--background-light);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.auth-links a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.auth-links a:hover {
+    text-decoration: underline;
+}
+
+/* Messages */
+.error-message {
+    background-color: var(--error-color);
+    color: white;
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    display: none;
+}
+
+.success-message {
+    background-color: var(--success-color);
+    color: white;
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    display: none;
+}
+
+/* Chat Interface */
+.chat-container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.sidebar {
+    width: 240px;
+    background-color: #2f3136;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 15px;
+    border-bottom: 1px solid var(--background);
+}
+
+.sidebar-header h2 {
+    font-size: 1.2rem;
+    color: white;
+}
+
+.server-list,
+.dm-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+.server-list h3,
+.dm-list h3 {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.sidebar-footer {
+    padding: 15px;
+    border-top: 1px solid var(--background);
+}
+
+.channel-sidebar {
+    width: 240px;
+    background-color: #2f3136;
+    padding: 15px;
+    overflow-y: auto;
+}
+
+.chat-main {
+    display: flex;
+    flex: 1;
+}
+
+.chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--background);
+}
+
+#chatHeader {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--background-light);
+    background-color: var(--background-light);
+}
+
+.message-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.message {
+    margin-bottom: 20px;
+}
+
+.message-author {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 5px;
+}
+
+.message-content {
+    color: var(--text-color);
+}
+
+.message-input-area {
+    padding: 20px;
+    background-color: var(--background-light);
+}
+
+#messageForm {
+    display: flex;
+    gap: 10px;
+}
+
+#messageInput {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid var(--text-muted);
+    border-radius: 4px;
+    background-color: var(--background);
+    color: var(--text-color);
+}
+
+/* Admin Panel */
+.admin-page .admin-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.admin-nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    overflow-x: auto;
+}
+
+.nav-btn {
+    padding: 10px 20px;
+    border: none;
+    background-color: var(--background-light);
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.nav-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.nav-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.admin-section {
+    display: none;
+    background-color: var(--background-light);
+    padding: 30px;
+    border-radius: 8px;
+}
+
+.admin-section.active {
+    display: block;
+}
+
+.admin-card {
+    background-color: var(--background);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content {
+    background-color: var(--background-light);
+    margin: 10% auto;
+    padding: 30px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+}
+
+.close {
+    color: var(--text-muted);
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: var(--text-color);
+}
+
+/* Legal Documents */
+.legal-document {
+    background-color: var(--background-light);
+    padding: 40px;
+    border-radius: 8px;
+    max-width: 900px;
+}
+
+.legal-document h1 {
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+.legal-document h2 {
+    color: var(--secondary-color);
+    margin-top: 30px;
+    margin-bottom: 15px;
+}
+
+.legal-document section {
+    margin-bottom: 30px;
+}
+
+.legal-document ul {
+    margin-left: 20px;
+    margin-top: 10px;
+}
+
+.legal-document li {
+    margin-bottom: 10px;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: 40px;
+    color: var(--text-muted);
+}

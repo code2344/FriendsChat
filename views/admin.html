@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - FriendsChat</title>
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+    <div class="container admin-page">
+        <header>
+            <h1>Admin Panel</h1>
+            <div class="admin-actions">
+                <a href="/chat" class="btn btn-secondary">Back to Chat</a>
+                <button id="logoutBtn" class="btn btn-danger">Logout</button>
+            </div>
+        </header>
+
+        <main>
+            <nav class="admin-nav">
+                <button class="nav-btn active" data-section="pending-users">Pending Users</button>
+                <button class="nav-btn" data-section="reports">Reports</button>
+                <button class="nav-btn" data-section="banned-users">Banned Users</button>
+                <button class="nav-btn" data-section="teacher-requests">Teacher Access Requests</button>
+                <button class="nav-btn master-admin-only" data-section="all-messages" style="display: none;">All Messages</button>
+                <button class="nav-btn master-admin-only" data-section="admin-management" style="display: none;">Admin Management</button>
+            </nav>
+
+            <div class="admin-content">
+                <!-- Pending Users Section -->
+                <section id="pending-users" class="admin-section active">
+                    <h2>Pending User Registrations</h2>
+                    <div id="pendingUsersList"></div>
+                </section>
+
+                <!-- Reports Section -->
+                <section id="reports" class="admin-section">
+                    <h2>User Reports</h2>
+                    <div class="filter-group">
+                        <label>Filter by status:</label>
+                        <select id="reportStatusFilter">
+                            <option value="">All</option>
+                            <option value="pending">Pending</option>
+                            <option value="reviewing">Reviewing</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="dismissed">Dismissed</option>
+                        </select>
+                    </div>
+                    <div id="reportsList"></div>
+                </section>
+
+                <!-- Banned Users Section -->
+                <section id="banned-users" class="admin-section">
+                    <h2>Banned Users</h2>
+                    <div id="bannedUsersList"></div>
+                </section>
+
+                <!-- Teacher Access Requests Section -->
+                <section id="teacher-requests" class="admin-section">
+                    <h2>Teacher Access Requests</h2>
+                    <div class="filter-group">
+                        <label>Filter by status:</label>
+                        <select id="teacherRequestStatusFilter">
+                            <option value="">All</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="denied">Denied</option>
+                        </select>
+                    </div>
+                    <div id="teacherRequestsList"></div>
+                </section>
+
+                <!-- All Messages Section (Master Admin Only) -->
+                <section id="all-messages" class="admin-section">
+                    <h2>All Messages</h2>
+                    <div class="filter-group">
+                        <label>Message type:</label>
+                        <select id="messageTypeFilter">
+                            <option value="all">All</option>
+                            <option value="channel">Channel Messages</option>
+                            <option value="direct">Direct Messages</option>
+                        </select>
+                    </div>
+                    <div id="allMessagesList"></div>
+                </section>
+
+                <!-- Admin Management Section (Master Admin Only) -->
+                <section id="admin-management" class="admin-section">
+                    <h2>Admin Management</h2>
+                    <div id="adminManagementContent"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/admin.js"></script>
+</body>
+</html>
