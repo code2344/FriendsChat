@@ -11,6 +11,11 @@
 
 2. **Bank Transfer System**
    - Unique reference codes generated (DON-XXXXXX format)
+   - Bank Details:
+     - BSB: 067872
+     - Account Number: 36978891
+     - Account Name: FriendsChat
+     - Note: Bank may show name mismatch warning - this is normal, please ignore
    - Manual admin verification
    - No payment processors (manual only)
    - Complete donation history tracking
