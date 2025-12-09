@@ -25,10 +25,6 @@ const channelSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  nsfw: {
-    type: Boolean,
-    default: false
-  },
   rateLimitPerUser: {
     type: Number,
     default: 0,

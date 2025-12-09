@@ -50,7 +50,6 @@ FriendsChat is a production-ready encrypted messaging platform that combines the
 - 📢 Announcement Channels
 - 🎙️ Stage Channels
 - 💬 Forum Channels
-- 🔞 NSFW Channels with age gate
 - ⏱️ Slowmode (rate limiting)
 - 🔍 Message Search
 

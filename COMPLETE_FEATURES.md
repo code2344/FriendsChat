@@ -290,19 +290,7 @@
 
 ---
 
-#### 22. **NSFW Channels** ✅
-- Mark channels as NSFW (18+)
-- Age gate warning before entering
-- NSFW indicator badge
-- Explicit content filter
-- Confirm to enter NSFW channels
-
-**Models:** `Channel.nsfw`  
-**UI:** NSFW badge, age gate modal
-
----
-
-#### 23. **Slowmode** ✅
+#### 22. **Slowmode** ✅
 - Set rate limit per user (0-21600 seconds)
 - Slowmode countdown timer
 - Bypass for moderators
@@ -497,7 +485,6 @@
 | Stickers | ✅ | ✅ | Complete |
 | Soundboard | ✅ | ✅ | Complete |
 | Webhooks | ✅ | ✅ | Complete |
-| NSFW Channels | ✅ | ✅ | Complete |
 | Slowmode | ✅ | ✅ | Complete |
 | Status System | ✅ | ✅ | Complete |
 | Mentions | ✅ | ✅ | Complete |

@@ -62,13 +62,12 @@ Successfully transformed FriendsChat from a basic encrypted chat application int
 - **Categories** - Organize channels
 - **Vanity URLs** - Custom invite URLs
 
-### 5. Channel Features (9 features)
+### 5. Channel Features (8 features)
 - **Text Channels** - Standard messaging
 - **Voice Channels** - Voice communication (UI ready)
 - **Announcement Channels** - One-way announcements
 - **Stage Channels** - Structured presentations
 - **Forum Channels** - Topic-based discussions
-- **NSFW Channels** - Age-gated content
 - **Slowmode** - Rate limiting
 - **Channel Topics** - Descriptions
 - **Channel Permissions** - Role-based access
@@ -114,7 +113,7 @@ Successfully transformed FriendsChat from a basic encrypted chat application int
 ### Enhanced Models (4)
 1. **User** - Added: avatar, banner, bio, pronouns, status, badges, customStatus
 2. **Server** - Added: boosts, categories, emojis, stickers, soundboard, vanityUrl, features, welcomeScreen, systemChannels, stats
-3. **Channel** - Added: topic, position, nsfw, rateLimitPerUser, permissions, pinnedMessages, lastMessage tracking
+3. **Channel** - Added: topic, position, rateLimitPerUser, permissions, pinnedMessages, lastMessage tracking
 4. **Message** - Added: attachments, embeds, replyTo, mentions, reactions, isPinned, isEdited, type
 
 ### New Controllers (2)
@@ -209,7 +208,6 @@ Successfully transformed FriendsChat from a basic encrypted chat application int
 | Custom Emojis | ✅ | ✅ | Complete |
 | Stickers | ✅ | ✅ | Complete |
 | Boosts | ✅ | ✅ | Complete |
-| NSFW Channels | ✅ | ✅ | Complete |
 | Slowmode | ✅ | ✅ | Complete |
 | Mentions | ✅ | ✅ | Complete |
 | Typing | ✅ | ✅ | Complete |

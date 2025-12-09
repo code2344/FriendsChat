@@ -1501,17 +1501,6 @@ footer {
     content: '💬';
 }
 
-/* NSFW Warning */
-.nsfw-warning {
-    padding: 24px;
-    text-align: center;
-    color: var(--error-color);
-}
-
-.nsfw-warning button {
-    margin-top: 16px;
-}
-
 /* Slowmode Indicator */
 .slowmode-active {
     color: var(--warning-color);
