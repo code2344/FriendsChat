@@ -1,6 +1,7 @@
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    const accountType = document.getElementById('accountType').value;
     const firstName = document.getElementById('firstName').value;
     const lastName = document.getElementById('lastName').value;
     const studentId = document.getElementById('studentId').value;
@@ -23,9 +24,9 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
         return;
     }
 
-    // Validate student ID format
+    // Validate ID format
     if (!/^\d{5}$/.test(studentId)) {
-        errorMessage.textContent = 'Student ID must be exactly 5 digits';
+        errorMessage.textContent = 'ID number must be exactly 5 digits';
         errorMessage.style.display = 'block';
         return;
     }
@@ -42,14 +43,15 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
                 studentId,
                 email,
                 username,
-                password
+                password,
+                accountType
             })
         });
 
         const data = await response.json();
 
         if (response.ok) {
-            successMessage.textContent = data.message || 'Registration successful! Your account is pending approval.';
+            successMessage.textContent = data.message || `Registration successful as ${accountType}! Your account is pending approval.`;
             successMessage.style.display = 'block';
             
             // Clear form

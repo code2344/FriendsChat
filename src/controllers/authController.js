@@ -8,7 +8,7 @@ const { initializeStudentInfo } = require('../utils/studentInfo');
  */
 async function register(req, res) {
   try {
-    const { firstName, lastName, studentId, email, username, password } = req.body;
+    const { firstName, lastName, studentId, email, username, password, accountType } = req.body;
 
     // Validate required fields
     if (!firstName || !lastName || !studentId || !email || !username || !password) {
@@ -27,6 +27,10 @@ async function register(req, res) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Determine account type and role
+    const userAccountType = accountType || 'student';
+    const userRole = userAccountType === 'teacher' ? 'teacher' : 'user';
+
     // Create user
     const user = new User({
       firstName,
@@ -35,7 +39,10 @@ async function register(req, res) {
       email,
       username,
       password: hashedPassword,
-      isApproved: false
+      isApproved: false,
+      accountType: userAccountType,
+      role: userRole,
+      badges: userAccountType === 'teacher' ? ['teacher'] : []
     });
 
     await user.save();
@@ -46,6 +53,7 @@ async function register(req, res) {
         id: user._id,
         username: user.username,
         email: user.email,
+        accountType: user.accountType,
         isApproved: user.isApproved
       }
     });
