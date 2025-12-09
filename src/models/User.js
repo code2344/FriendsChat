@@ -43,8 +43,13 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin', 'master_admin'],
+    enum: ['user', 'teacher', 'admin', 'master_admin'],
     default: 'user'
+  },
+  accountType: {
+    type: String,
+    enum: ['student', 'teacher', 'staff'],
+    default: 'student'
   },
   isApproved: {
     type: Boolean,
@@ -104,8 +109,33 @@ const userSchema = new mongoose.Schema({
   },
   badges: [{
     type: String,
-    enum: ['staff', 'partner', 'verified', 'early_supporter', 'bug_hunter', 'contributor']
-  }]
+    enum: ['staff', 'partner', 'verified', 'early_supporter', 'bug_hunter', 'contributor', 'donor', 'teacher']
+  }],
+  donorStatus: {
+    isDonor: { type: Boolean, default: false },
+    tier: { type: String, enum: ['bronze', 'silver', 'gold', 'platinum'], default: null },
+    since: { type: Date, default: null }
+  },
+  customization: {
+    nameplate: {
+      enabled: { type: Boolean, default: false },
+      text: { type: String, default: '' },
+      color: { type: String, default: '#ffa500' },
+      gradient: { type: Boolean, default: false },
+      gradientColors: [String]
+    },
+    font: {
+      enabled: { type: Boolean, default: false },
+      fontFamily: { type: String, default: 'Arial' },
+      fontWeight: { type: String, default: 'normal' },
+      fontStyle: { type: String, default: 'normal' }
+    },
+    profile: {
+      animatedAvatar: { type: Boolean, default: false },
+      customBanner: { type: Boolean, default: false },
+      profileTheme: { type: String, default: null }
+    }
+  }
 });
 
 module.exports = mongoose.model('User', userSchema);

@@ -17,6 +17,10 @@ const adminRoutes = require('./routes/admin');
 const teacherAccessRoutes = require('./routes/teacherAccess');
 const serverFolderRoutes = require('./routes/serverFolders');
 const userSettingsRoutes = require('./routes/userSettings');
+const donationRoutes = require('./routes/donations');
+const sponsorshipRoutes = require('./routes/sponsorships');
+const announcementRoutes = require('./routes/announcements');
+const teacherDataRoutes = require('./routes/teacherData');
 
 const app = express();
 const server = http.createServer(app);
@@ -42,6 +46,10 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/teacher-access', teacherAccessRoutes);
 app.use('/api/server-folders', serverFolderRoutes);
 app.use('/api/settings', userSettingsRoutes);
+app.use('/api/donations', donationRoutes);
+app.use('/api/sponsorships', sponsorshipRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/teacher-data', teacherDataRoutes);
 
 // Serve HTML pages
 app.get('/', (req, res) => {
@@ -66,6 +74,14 @@ app.get('/admin', (req, res) => {
 
 app.get('/teacher-access', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/teacher-access.html'));
+});
+
+app.get('/donate', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/donate.html'));
+});
+
+app.get('/sponsored', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/sponsored.html'));
 });
 
 app.get('/tos', (req, res) => {
