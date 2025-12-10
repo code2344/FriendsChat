@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 const serverFolderController = require('../controllers/serverFolderController');
 
 // All routes require authentication
-router.use(authenticateToken);
+router.use(authenticate);
 
 // Get user's folders
 router.get('/', serverFolderController.getUserFolders);

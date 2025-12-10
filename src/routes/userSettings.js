@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 const userSettingsController = require('../controllers/userSettingsController');
 
 // All routes require authentication
-router.use(authenticateToken);
+router.use(authenticate);
 
 // Get settings
 router.get('/', userSettingsController.getUserSettings);
