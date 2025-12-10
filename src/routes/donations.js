@@ -6,7 +6,7 @@ const { authenticate } = require('../middleware/auth');
 // User routes
 router.post('/', authenticate, donationController.createDonation);
 router.get('/my', authenticate, donationController.getUserDonations);
-router.put('/customization', authenticateToken, donationController.updateCustomization);
+router.put('/customization', authenticate, donationController.updateCustomization);
 
 // Admin routes
 router.get('/pending', authenticate, donationController.getPendingDonations);
