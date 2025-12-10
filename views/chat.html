@@ -44,9 +44,6 @@
                     <div id="categoriesContainer">
                         <!-- Categories and channels will be loaded dynamically -->
                     </div>
-                    <div class="add-category-btn" id="addCategoryBtn" style="margin: 10px 15px;">
-                        <button class="btn btn-secondary btn-small" style="width: 100%;">+ Create Category</button>
-                    </div>
                 </div>
             </div>
 
@@ -165,6 +162,20 @@
                     <div class="form-group">
                         <label for="channelNameInput">Channel Name</label>
                         <input type="text" id="channelNameInput" class="user-search-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="channelCategorySelect">Category (Optional)</label>
+                        <select id="channelCategorySelect" class="user-search-input">
+                            <option value="">No Category</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="channelTypeSelect">Channel Type</label>
+                        <select id="channelTypeSelect" class="user-search-input">
+                            <option value="text">Text Channel</option>
+                            <option value="voice">Voice Channel</option>
+                            <option value="announcement">Announcement</option>
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -305,6 +316,13 @@
                     <div class="form-group">
                         <label>Theme Color</label>
                         <input type="color" id="settingsThemeColor" value="#5865f2" style="width: 100%; height: 40px; border: none; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Manage Categories</label>
+                        <button type="button" class="btn btn-secondary" style="width: 100%;" onclick="openCreateCategoryModal()">+ Create Category</button>
+                        <div id="categoriesListSettings" style="margin-top: 10px;">
+                            <!-- Categories list will be loaded here -->
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">

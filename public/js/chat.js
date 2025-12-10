@@ -225,7 +225,10 @@ function createCategorySection(category, channels) {
     
     // Toggle collapse on header click
     header.onclick = (e) => {
-        if (!e.target.classList.contains('category-add')) {
+        if (e.target.classList.contains('category-add')) {
+            e.stopPropagation();
+            openCreateChannelInCategory(category._id);
+        } else {
             toggleCategory(category._id, channelsDiv);
         }
     };
@@ -626,6 +629,8 @@ document.getElementById('createChannelForm').addEventListener('submit', async (e
     e.preventDefault();
 
     const name = document.getElementById('channelNameInput').value;
+    const categoryId = document.getElementById('channelCategorySelect').value;
+    const type = document.getElementById('channelTypeSelect').value;
 
     try {
         const response = await fetch('/api/channels', {
@@ -637,7 +642,8 @@ document.getElementById('createChannelForm').addEventListener('submit', async (e
             body: JSON.stringify({
                 serverId: currentServer,
                 name,
-                type: 'text'
+                type,
+                categoryId: categoryId || undefined
             })
         });
 
@@ -645,9 +651,14 @@ document.getElementById('createChannelForm').addEventListener('submit', async (e
             closeModal('createChannelModal');
             document.getElementById('createChannelForm').reset();
             await loadChannels(currentServer);
+            showNotification('Channel created successfully!');
+        } else {
+            const error = await response.json();
+            alert('Failed to create channel: ' + (error.error || 'Unknown error'));
         }
     } catch (error) {
         console.error('Error creating channel:', error);
+        alert('Failed to create channel');
     }
 });
 
@@ -891,6 +902,7 @@ async function createCategory(name) {
         if (response.ok) {
             // Reload channels to show new category
             await loadChannels(currentServer);
+            showNotification('Category created successfully!');
         } else {
             const error = await response.json();
             alert('Failed to create category: ' + (error.error || 'Unknown error'));
@@ -898,6 +910,48 @@ async function createCategory(name) {
     } catch (error) {
         console.error('Error creating category:', error);
         alert('Failed to create category');
+    }
+}
+
+// Open create channel modal with category pre-selected
+async function openCreateChannelInCategory(categoryId) {
+    if (!currentServer) return;
+    
+    // Load categories into selector first
+    await loadCategoriesIntoSelector();
+    
+    // Pre-select the category
+    document.getElementById('channelCategorySelect').value = categoryId;
+    
+    // Open the modal
+    openModal('createChannelModal');
+}
+window.openCreateChannelInCategory = openCreateChannelInCategory;
+
+// Load categories into the channel creation selector
+async function loadCategoriesIntoSelector() {
+    try {
+        const response = await fetch(`/api/categories/server/${currentServer}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const categories = await response.json();
+            const selector = document.getElementById('channelCategorySelect');
+            
+            // Clear existing options except "No Category"
+            selector.innerHTML = '<option value="">No Category</option>';
+            
+            // Add categories
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category._id;
+                option.textContent = category.name;
+                selector.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
     }
 }
 
