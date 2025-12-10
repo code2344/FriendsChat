@@ -66,6 +66,7 @@ function isApproved(req, res, next) {
 
 module.exports = {
   authenticate,
+  authenticateToken: authenticate,  // <-- alias
   isAdmin,
   isMasterAdmin,
   isApproved
