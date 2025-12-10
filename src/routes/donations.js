@@ -1,19 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const donationController = require('../controllers/donationController');
-const { authenticateToken } = require('../middleware/auth');
-
-console.log("authenticateToken:", typeof authenticateToken);
-console.log("createDonation:", typeof donationController.createDonation);
+const { authenticate } = require('../middleware/auth');
 
 // User routes
-router.post('/', authenticateToken, donationController.createDonation);
-router.get('/my', authenticateToken, donationController.getUserDonations);
+router.post('/', authenticate, donationController.createDonation);
+router.get('/my', authenticate, donationController.getUserDonations);
 router.put('/customization', authenticateToken, donationController.updateCustomization);
 
 // Admin routes
-router.get('/pending', authenticateToken, donationController.getPendingDonations);
-router.put('/:donationId/verify', authenticateToken, donationController.verifyDonation);
-router.put('/:donationId/reject', authenticateToken, donationController.rejectDonation);
+router.get('/pending', authenticate, donationController.getPendingDonations);
+router.put('/:donationId/verify', authenticate, donationController.verifyDonation);
+router.put('/:donationId/reject', authenticate, donationController.rejectDonation);
 
 module.exports = router;
