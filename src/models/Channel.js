@@ -33,6 +33,7 @@ const channelSchema = new mongoose.Schema({
   },
   category: {
     type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
     default: null
   },
   permissions: [{

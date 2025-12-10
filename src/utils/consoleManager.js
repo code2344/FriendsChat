@@ -30,6 +30,7 @@ class ConsoleManager {
       'archive:run': this.runArchive.bind(this),
       'archive:search': this.searchArchive.bind(this),
       'archive:stats': this.archiveStats.bind(this),
+      update: this.updateAndRestart.bind(this),
       clear: this.clearScreen.bind(this),
       exit: this.exitConsole.bind(this)
     };
@@ -105,6 +106,7 @@ class ConsoleManager {
     
     console.log('\x1b[32mSystem:\x1b[0m');
     console.log('  stats                    - Show system statistics');
+    console.log('  update                   - Pull latest code from git and restart server');
     console.log('  clear                    - Clear the console screen');
     console.log('  help                     - Show this help message');
     console.log('  exit                     - Exit the console\n');
@@ -462,6 +464,43 @@ class ConsoleManager {
     console.log('\x1b[35m╔═══════════════════════════════════════════════════════════╗\x1b[0m');
     console.log('\x1b[35m║           FriendsChat Admin Console v1.0                  ║\x1b[0m');
     console.log('\x1b[35m╚═══════════════════════════════════════════════════════════╝\x1b[0m\n');
+  }
+
+  async updateAndRestart() {
+    console.log('\n\x1b[33m═══ Updating Server ═══\x1b[0m\n');
+    console.log('\x1b[36mPulling latest code from git...\x1b[0m');
+    
+    const { exec } = require('child_process');
+    const util = require('util');
+    const execPromise = util.promisify(exec);
+
+    try {
+      // Run git pull
+      const { stdout, stderr } = await execPromise('git pull');
+      
+      console.log('\x1b[32mGit pull output:\x1b[0m');
+      console.log(stdout);
+      
+      if (stderr && !stderr.includes('Already up to date')) {
+        console.log('\x1b[33mGit warnings/errors:\x1b[0m');
+        console.log(stderr);
+      }
+
+      console.log('\n\x1b[36mRestarting server...\x1b[0m');
+      console.log('\x1b[33m(Process will exit and you need to restart with npm start)\x1b[0m\n');
+      
+      // Close readline and exit process
+      this.rl.close();
+      
+      // Give time for message to display
+      setTimeout(() => {
+        process.exit(0);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('\x1b[31mError during update:\x1b[0m', error.message);
+      console.log('\x1b[33mTry running "git pull" manually in your terminal.\x1b[0m\n');
+    }
   }
 
   exitConsole() {

@@ -16,7 +16,6 @@
             <div class="server-separator"></div>
             <div id="serverIconsList"></div>
             <div class="server-icon add-server" id="addServerIcon" title="Add Server">+</div>
-            <div class="server-icon add-server" id="createFolderIcon" title="Create Folder">📁</div>
             <div class="server-icon add-server" id="discoverServersIcon" title="Discover Servers">🔍</div>
         </div>
 
@@ -42,12 +41,11 @@
                 </div>
                 
                 <div id="serverChannelsView" style="display: none;">
-                    <div class="channel-category">
-                        <div class="category-header">
-                            <span class="category-name">Text Channels</span>
-                            <span class="category-icon" id="addChannelBtn">+</span>
-                        </div>
-                        <div id="channelsList"></div>
+                    <div id="categoriesContainer">
+                        <!-- Categories and channels will be loaded dynamically -->
+                    </div>
+                    <div class="add-category-btn" id="addCategoryBtn" style="margin: 10px 15px;">
+                        <button class="btn btn-secondary btn-small" style="width: 100%;">+ Create Category</button>
                     </div>
                 </div>
             </div>

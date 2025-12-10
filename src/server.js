@@ -21,6 +21,7 @@ const donationRoutes = require('./routes/donations');
 const sponsorshipRoutes = require('./routes/sponsorships');
 const announcementRoutes = require('./routes/announcements');
 const teacherDataRoutes = require('./routes/teacherData');
+const categoryRoutes = require('./routes/categories');
 
 const app = express();
 const server = http.createServer(app);
@@ -50,6 +51,7 @@ app.use('/api/donations', donationRoutes);
 app.use('/api/sponsorships', sponsorshipRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/teacher-data', teacherDataRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // Serve HTML pages
 app.get('/', (req, res) => {
