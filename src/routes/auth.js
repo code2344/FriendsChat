@@ -12,6 +12,7 @@ router.get('/search-users', authenticate, authController.searchUsers);
 
 // Admin routes
 router.get('/pending-users', authenticate, isAdmin, authController.getPendingUsers);
+router.get('/all-users', authenticate, isAdmin, authController.getAllUsers);
 router.post('/approve/:userId', authenticate, isAdmin, authController.approveUser);
 router.delete('/deny/:userId', authenticate, isAdmin, authController.denyUser);
 

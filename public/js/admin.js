@@ -566,3 +566,167 @@ async function loadSystemHealth() {
 
 // Initialize
 refreshDashboard();
+
+// Load all users for dropdowns (moderation)
+let allUsers = [];
+
+async function loadAllUsers() {
+    try {
+        const response = await fetch('/api/auth/all-users', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            allUsers = await response.json();
+            populateUserDropdowns();
+        }
+    } catch (error) {
+        console.error('Error loading all users:', error);
+    }
+}
+
+function populateUserDropdowns() {
+    const dwUserSelect = document.getElementById('dwUserSelect');
+    const reportUserSelect = document.getElementById('reportUserSelect');
+    
+    const options = allUsers.map(u => `
+        <option value="${u._id}">${u.username} (${u.firstName} ${u.lastName})</option>
+    `).join('');
+    
+    if (dwUserSelect) {
+        dwUserSelect.innerHTML = '<option value="">Select user...</option>' + options;
+    }
+    
+    if (reportUserSelect) {
+        reportUserSelect.innerHTML = '<option value="">Select user...</option>' + options;
+    }
+}
+
+// Direct Warning Functions
+async function issueDW() {
+    const userId = document.getElementById('dwUserSelect')?.value;
+    const reason = document.getElementById('dwReason')?.value;
+    const punishmentType = document.getElementById('dwPunishmentType')?.value;
+    
+    if (!userId) {
+        alert('Please select a user');
+        return;
+    }
+    
+    if (!reason || reason.length < 20) {
+        alert('Reason must be at least 20 characters');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/direct-warnings', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId,
+                reason,
+                violationType: 'manual',
+                punishmentType: punishmentType || 'warning'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('Direct Warning issued successfully!\\n\\nUser has been notified via email.');
+            document.getElementById('dwReason').value = '';
+            document.getElementById('dwUserSelect').value = '';
+            loadActiveDWs();
+        } else {
+            alert(`Error: ${data.error || 'Failed to issue Direct Warning'}`);
+        }
+    } catch (error) {
+        console.error('Error issuing DW:', error);
+        alert('Failed to issue Direct Warning. Check console for details.');
+    }
+}
+
+async function loadActiveDWs() {
+    try {
+        const response = await fetch('/api/direct-warnings?status=open', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            displayActiveDWs(data.directWarnings || data || []);
+        }
+    } catch (error) {
+        console.error('Error loading active DWs:', error);
+    }
+}
+
+function displayActiveDWs(dws) {
+    const container = document.getElementById('activeDWsList');
+    
+    if (!container) return;
+    
+    if (dws.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No active Direct Warnings</p>';
+        return;
+    }
+    
+    container.innerHTML = dws.map(dw => `
+        <div class="table-row">
+            <div>
+                <div style="font-weight: 600; color: var(--text-bright);">
+                    ${dw.user?.username || 'Unknown User'}
+                    <span class="user-badge badge-pending">${dw.status.toUpperCase()}</span>
+                </div>
+                <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">
+                    ${dw.reason.substring(0, 100)}...
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    Issued: ${new Date(dw.createdAt).toLocaleString()}
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-small btn-primary" onclick="viewDW('${dw._id}')">View</button>
+                <button class="btn btn-small btn-success" onclick="resolveDW('${dw._id}')">Resolve</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function resolveDW(dwId) {
+    if (!confirm('Mark this Direct Warning as resolved?')) return;
+    
+    try {
+        const response = await fetch(`/api/direct-warnings/${dwId}/resolve`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            alert('Direct Warning resolved');
+            loadActiveDWs();
+        }
+    } catch (error) {
+        console.error('Error resolving DW:', error);
+    }
+}
+
+function viewDW(dwId) {
+    alert('DW viewing feature coming soon!');
+    // TODO: Open modal with DW details and conversation
+}
+
+// Make functions global
+window.issueDW = issueDW;
+window.loadActiveDWs = loadActiveDWs;
+window.resolveDW = resolveDW;
+window.viewDW = viewDW;
+
+// Load users on page load
+loadAllUsers();

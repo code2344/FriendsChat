@@ -235,10 +235,30 @@ async function searchUsers(req, res) {
   }
 }
 
+/**
+ * Get all users (admin only) - for dropdowns and moderation
+ */
+async function getAllUsers(req, res) {
+  try {
+    const users = await User.find({
+      isApproved: true,
+      isBanned: false
+    })
+    .select('_id username firstName lastName email accountType')
+    .sort({ username: 1 });
+
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching all users:', error);
+    res.status(500).json({ error: 'Failed to fetch users', details: error.message });
+  }
+}
+
 module.exports = {
   register,
   login,
   getPendingUsers,
+  getAllUsers,
   approveUser,
   denyUser,
   searchUsers
