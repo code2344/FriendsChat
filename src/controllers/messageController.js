@@ -124,19 +124,38 @@ async function sendDirectMessage(req, res) {
     // Encrypt message
     const encryptedContent = encryptMessage(filteredMessage);
 
-    // Create direct message
-    const dm = new DirectMessage({
+    // Find or create DM conversation
+    let dmConversation = await DirectMessage.findOne({
+      participants: { $all: [req.user._id, recipientId] }
+    });
+
+    if (!dmConversation) {
+      // Create new conversation
+      dmConversation = new DirectMessage({
+        participants: [req.user._id, recipientId],
+        messages: []
+      });
+    }
+
+    // Add message to conversation
+    dmConversation.messages.push({
+      sender: req.user._id,
       content: filteredMessage,
       encryptedContent,
-      sender: req.user._id,
-      recipient: recipientId,
       isFiltered
     });
 
-    await dm.save();
-    await dm.populate('sender recipient', 'username firstName lastName');
+    dmConversation.lastMessage = new Date();
+    await dmConversation.save();
+    
+    // Populate for response
+    await dmConversation.populate('participants', 'username firstName lastName');
+    await dmConversation.populate('messages.sender', 'username firstName lastName');
 
-    res.status(201).json(dm);
+    res.status(201).json({
+      conversation: dmConversation,
+      message: dmConversation.messages[dmConversation.messages.length - 1]
+    });
   } catch (error) {
     console.error('Error sending DM:', error);
     res.status(500).json({ error: 'Failed to send direct message', details: error.message });
@@ -149,35 +168,54 @@ async function sendDirectMessage(req, res) {
 async function getDirectMessages(req, res) {
   try {
     const { userId } = req.params;
-    const { limit = 50, before } = req.query;
 
-    // Build query
-    const query = {
-      $or: [
-        { sender: req.user._id, recipient: userId },
-        { sender: userId, recipient: req.user._id }
-      ]
-    };
+    // Find DM conversation
+    const dmConversation = await DirectMessage.findOne({
+      participants: { $all: [req.user._id, userId] }
+    })
+    .populate('participants', 'username firstName lastName')
+    .populate('messages.sender', 'username firstName lastName');
 
-    if (before) {
-      query.createdAt = { $lt: new Date(before) };
+    if (!dmConversation) {
+      return res.json({ messages: [] });
     }
 
-    const messages = await DirectMessage.find(query)
-      .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
-      .populate('sender recipient', 'username firstName lastName');
+    res.json({
+      conversation: dmConversation,
+      messages: dmConversation.messages
+    });
+  } catch (error) {
+    console.error('Error fetching DMs:', error);
+    res.status(500).json({ error: 'Failed to fetch direct messages', details: error.message });
+  }
+}
+
+/**
+ * Get all DM conversations for current user
+ */
+async function getDmConversations(req, res) {
+  try {
+    // Find all conversations where user is a participant
+    const conversations = await DirectMessage.find({
+      participants: req.user._id
+    })
+    .populate('participants', 'username firstName lastName')
+    .populate('messages.sender', 'username firstName lastName')
+    .sort({ lastMessage: -1 });
 
     // Decrypt messages for master admin
     if (req.user.role === 'master_admin') {
-      messages.forEach(msg => {
-        msg.content = decryptMessage(msg.encryptedContent);
+      conversations.forEach(conv => {
+        conv.messages.forEach(msg => {
+          msg.content = decryptMessage(msg.encryptedContent);
+        });
       });
     }
 
-    res.json(messages);
+    res.json({ conversations });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch direct messages', details: error.message });
+    console.error('Error fetching DM conversations:', error);
+    res.status(500).json({ error: 'Failed to fetch conversations', details: error.message });
   }
 }
 
@@ -187,19 +225,22 @@ async function getDirectMessages(req, res) {
 async function getAllMessages(req, res) {
   try {
     const { type = 'all', limit = 100 } = req.query;
-    let messages = [];
+    let allMessages = [];
 
     if (type === 'direct' || type === 'all') {
-      const dms = await DirectMessage.find()
-        .sort({ createdAt: -1 })
+      const dmConversations = await DirectMessage.find()
+        .sort({ lastMessage: -1 })
         .limit(parseInt(limit))
-        .populate('sender recipient', 'username firstName lastName');
+        .populate('participants', 'username firstName lastName')
+        .populate('messages.sender', 'username firstName lastName');
       
-      dms.forEach(msg => {
-        msg.content = decryptMessage(msg.encryptedContent);
+      dmConversations.forEach(conv => {
+        conv.messages.forEach(msg => {
+          msg.content = decryptMessage(msg.encryptedContent);
+        });
       });
       
-      messages = messages.concat(dms);
+      allMessages = allMessages.concat(dmConversations);
     }
 
     if (type === 'channel' || type === 'all') {
@@ -214,11 +255,12 @@ async function getAllMessages(req, res) {
         msg.content = decryptMessage(msg.encryptedContent);
       });
       
-      messages = messages.concat(channelMsgs);
+      allMessages = allMessages.concat(channelMsgs);
     }
 
-    res.json(messages);
+    res.json({ messages: allMessages });
   } catch (error) {
+    console.error('Error fetching all messages:', error);
     res.status(500).json({ error: 'Failed to fetch all messages', details: error.message });
   }
 }
@@ -228,5 +270,6 @@ module.exports = {
   getMessages,
   sendDirectMessage,
   getDirectMessages,
+  getDmConversations,
   getAllMessages
 };
