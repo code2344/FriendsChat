@@ -3,6 +3,9 @@ const router = express.Router();
 const donationController = require('../controllers/donationController');
 const { authenticateToken } = require('../middleware/auth');
 
+console.log("authenticateToken:", typeof authenticateToken);
+console.log("createDonation:", typeof donationController.createDonation);
+
 // User routes
 router.post('/', authenticateToken, donationController.createDonation);
 router.get('/my', authenticateToken, donationController.getUserDonations);
