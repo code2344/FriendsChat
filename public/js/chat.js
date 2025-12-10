@@ -401,7 +401,10 @@ function displayMessages(messages) {
             <div class="message-text" data-message-id="${msg._id}">${msg.content}</div>
             <div class="message-actions" style="display: none;">
                 <button class="message-action-btn" onclick="showEmojiPicker('${msg._id}', this)" title="Add Reaction">😊</button>
-                ${isOwnMessage ? `<button class="message-action-btn" onclick="enableMessageEdit('${msg._id}')" title="Edit Message">✏️</button>` : ''}
+                ${isOwnMessage ? `
+                    <button class="message-action-btn" onclick="enableMessageEdit('${msg._id}')" title="Edit Message">✏️</button>
+                    <button class="message-action-btn" onclick="deleteMessage('${msg._id}')" title="Delete Message">🗑️</button>
+                ` : ''}
                 <button class="message-action-btn" onclick="showReportModal('${msg._id}')" title="Report Message">🚩</button>
             </div>
             <div class="message-reactions" id="reactions-${msg._id}"></div>
@@ -1128,11 +1131,11 @@ function showEmojiPicker(messageId, buttonElement) {
         document.body.appendChild(picker);
     }
     
-    // Position near button
+    // Position near button with proper scroll offset
     const rect = buttonElement.getBoundingClientRect();
     picker.style.display = 'block';
-    picker.style.top = (rect.bottom + 5) + 'px';
-    picker.style.left = rect.left + 'px';
+    picker.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+    picker.style.left = (rect.left + window.scrollX) + 'px';
     
     // Close on click outside
     setTimeout(() => {
