@@ -110,7 +110,9 @@ async function getMessages(req, res) {
  */
 async function sendDirectMessage(req, res) {
   try {
-    const { recipientId, content } = req.body;
+    // Accept both 'recipient' and 'recipientId' for compatibility
+    const recipientId = req.body.recipientId || req.body.recipient;
+    const { content } = req.body;
 
     if (!content || !recipientId) {
       return res.status(400).json({ error: 'Content and recipient ID are required' });
@@ -136,6 +138,7 @@ async function sendDirectMessage(req, res) {
 
     res.status(201).json(dm);
   } catch (error) {
+    console.error('Error sending DM:', error);
     res.status(500).json({ error: 'Failed to send direct message', details: error.message });
   }
 }
