@@ -265,11 +265,55 @@ async function getAllMessages(req, res) {
   }
 }
 
+/**
+ * Edit a message
+ */
+async function editMessage(req, res) {
+  try {
+    const { id } = req.params;
+    const { content } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+
+    const message = await Message.findById(id);
+    
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    // Check if user owns the message or is master admin
+    if (!message.author.equals(req.user._id) && req.user.role !== 'master_admin') {
+      return res.status(403).json({ error: 'Not authorized to edit this message' });
+    }
+
+    // Filter profanity
+    const { filteredMessage, isFiltered } = filterProfanity(content);
+
+    // Update message
+    message.content = filteredMessage;
+    message.encryptedContent = encryptMessage(filteredMessage);
+    message.isEdited = true;
+    message.editedAt = new Date();
+    message.isFiltered = isFiltered;
+
+    await message.save();
+    await message.populate('author', 'username firstName lastName');
+
+    res.json(message);
+  } catch (error) {
+    console.error('Error editing message:', error);
+    res.status(500).json({ error: 'Failed to edit message', details: error.message });
+  }
+}
+
 module.exports = {
   sendMessage,
   getMessages,
   sendDirectMessage,
   getDirectMessages,
   getDmConversations,
-  getAllMessages
+  getAllMessages,
+  editMessage
 };

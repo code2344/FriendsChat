@@ -11,6 +11,9 @@ router.get('/channel/:channelId', authenticate, messageController.getMessages);
 router.post('/direct', authenticate, messageController.sendDirectMessage);
 router.get('/direct/:userId', authenticate, messageController.getDirectMessages);
 
+// Edit message
+router.put('/:id/edit', authenticate, messageController.editMessage);
+
 // Master admin routes
 router.get('/all', authenticate, isMasterAdmin, messageController.getAllMessages);
 

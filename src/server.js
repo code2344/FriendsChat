@@ -24,6 +24,8 @@ const teacherDataRoutes = require('./routes/teacherData');
 const categoryRoutes = require('./routes/categories');
 const reportRoutes = require('./routes/reports');
 const directWarningRoutes = require('./routes/directWarnings');
+const reactionRoutes = require('./routes/reactions');
+const friendRoutes = require('./routes/friends');
 
 const app = express();
 const server = http.createServer(app);
@@ -56,6 +58,8 @@ app.use('/api/teacher-data', teacherDataRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/direct-warnings', directWarningRoutes);
+app.use('/api/messages', reactionRoutes); // Reactions are on messages/:id/react
+app.use('/api/friends', friendRoutes);
 
 // Serve HTML pages
 app.get('/', (req, res) => {
