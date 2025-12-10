@@ -380,6 +380,7 @@ function displayMessages(messages) {
     messages.forEach(msg => {
         const messageGroup = document.createElement('div');
         messageGroup.className = 'message-group';
+        messageGroup.setAttribute('data-message-id', msg._id);
         
         const initials = (msg.author?.firstName?.[0] || '') + (msg.author?.lastName?.[0] || '');
         const avatar = document.createElement('div');
@@ -388,17 +389,49 @@ function displayMessages(messages) {
 
         const contentWrapper = document.createElement('div');
         contentWrapper.className = 'message-content-wrapper';
+        
+        const isOwnMessage = msg.author?._id === user.id;
+        
         contentWrapper.innerHTML = `
             <div class="message-header">
                 <span class="message-author">${msg.author?.username || 'Unknown'}</span>
                 <span class="message-timestamp">${new Date(msg.createdAt).toLocaleString()}</span>
+                ${msg.isEdited ? '<span class="message-edited-label">(edited)</span>' : ''}
             </div>
-            <div class="message-text">${msg.content}</div>
+            <div class="message-text" data-message-id="${msg._id}">${msg.content}</div>
+            <div class="message-actions" style="display: none;">
+                <button class="message-action-btn" onclick="showEmojiPicker('${msg._id}', this)" title="Add Reaction">😊</button>
+                ${isOwnMessage ? `<button class="message-action-btn" onclick="enableMessageEdit('${msg._id}')" title="Edit Message">✏️</button>` : ''}
+                <button class="message-action-btn" onclick="showReportModal('${msg._id}')" title="Report Message">🚩</button>
+            </div>
+            <div class="message-reactions" id="reactions-${msg._id}"></div>
         `;
+
+        // Add context menu handler
+        contentWrapper.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            showContextMenu(e, msg._id, msg);
+        });
+        
+        // Show actions on hover
+        messageGroup.addEventListener('mouseenter', () => {
+            const actions = contentWrapper.querySelector('.message-actions');
+            if (actions) actions.style.display = 'flex';
+        });
+        
+        messageGroup.addEventListener('mouseleave', () => {
+            const actions = contentWrapper.querySelector('.message-actions');
+            if (actions) actions.style.display = 'none';
+        });
 
         messageGroup.appendChild(avatar);
         messageGroup.appendChild(contentWrapper);
         messageArea.appendChild(messageGroup);
+        
+        // Load reactions if they exist
+        if (msg.reactions && msg.reactions.length > 0) {
+            displayMessageReactions(msg._id, msg.reactions);
+        }
     });
 
     scrollToBottom();
@@ -415,6 +448,7 @@ function displayDirectMessages(messages) {
         
         const messageGroup = document.createElement('div');
         messageGroup.className = 'message-group';
+        messageGroup.setAttribute('data-message-id', msg._id);
         
         const initials = displayUser.username[0].toUpperCase();
         const avatar = document.createElement('div');
@@ -427,13 +461,42 @@ function displayDirectMessages(messages) {
             <div class="message-header">
                 <span class="message-author">${displayUser.username}</span>
                 <span class="message-timestamp">${new Date(msg.createdAt).toLocaleString()}</span>
+                ${msg.isEdited ? '<span class="message-edited-label">(edited)</span>' : ''}
             </div>
-            <div class="message-text">${msg.content}</div>
+            <div class="message-text" data-message-id="${msg._id}">${msg.content}</div>
+            <div class="message-actions" style="display: none;">
+                <button class="message-action-btn" onclick="showEmojiPicker('${msg._id}', this)" title="Add Reaction">😊</button>
+                ${isOwn ? `<button class="message-action-btn" onclick="enableMessageEdit('${msg._id}')" title="Edit Message">✏️</button>` : ''}
+                <button class="message-action-btn" onclick="showReportModal('${msg._id}')" title="Report Message">🚩</button>
+            </div>
+            <div class="message-reactions" id="reactions-${msg._id}"></div>
         `;
+
+        // Add context menu handler
+        contentWrapper.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            showContextMenu(e, msg._id, msg);
+        });
+        
+        // Show actions on hover
+        messageGroup.addEventListener('mouseenter', () => {
+            const actions = contentWrapper.querySelector('.message-actions');
+            if (actions) actions.style.display = 'flex';
+        });
+        
+        messageGroup.addEventListener('mouseleave', () => {
+            const actions = contentWrapper.querySelector('.message-actions');
+            if (actions) actions.style.display = 'none';
+        });
 
         messageGroup.appendChild(avatar);
         messageGroup.appendChild(contentWrapper);
         messageArea.appendChild(messageGroup);
+        
+        // Load reactions if they exist
+        if (msg.reactions && msg.reactions.length > 0) {
+            displayMessageReactions(msg._id, msg.reactions);
+        }
     });
 
     scrollToBottom();
@@ -1155,6 +1218,12 @@ async function toggleReaction(messageId, emoji) {
 window.showEmojiPicker = showEmojiPicker;
 window.selectEmoji = selectEmoji;
 window.toggleReaction = toggleReaction;
+
+// Alias for displaying reactions on initial load
+function displayMessageReactions(messageId, reactions) {
+    updateMessageReactions(messageId, reactions);
+}
+window.displayMessageReactions = displayMessageReactions;
 
 // ==================== MESSAGE EDITING ====================
 
