@@ -48,6 +48,7 @@ document.getElementById('logoutBtn').addEventListener('click', logout);
 document.getElementById('adminPanelBtn')?.addEventListener('click', () => window.location.href = '/admin');
 document.getElementById('inviteBtn').addEventListener('click', () => createServerInvite());
 document.getElementById('serverHeader').addEventListener('click', toggleServerMenu);
+document.getElementById('addCategoryBtn')?.addEventListener('click', () => openCreateCategoryModal());
 
 // Modal functions
 function openModal(modalId) {
@@ -150,37 +151,135 @@ async function switchToServer(serverId) {
     await loadChannels(serverId);
 }
 
-// Load channels for server
+// Load channels for server with categories
 async function loadChannels(serverId) {
     try {
-        const response = await fetch(`/api/channels/server/${serverId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        // Fetch both categories and channels
+        const [categoriesResponse, channelsResponse] = await Promise.all([
+            fetch(`/api/categories/server/${serverId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch(`/api/channels/server/${serverId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+        ]);
 
-        if (response.ok) {
-            const channels = await response.json();
-            displayChannels(channels);
-        }
+        const categories = categoriesResponse.ok ? await categoriesResponse.json() : { categories: [], uncategorizedChannels: [] };
+        const allChannels = channelsResponse.ok ? await channelsResponse.json() : [];
+
+        displayChannelsWithCategories(categories, allChannels);
     } catch (error) {
         console.error('Error loading channels:', error);
+        // Fallback to showing channels without categories
+        displayChannelsWithCategories({ categories: [], uncategorizedChannels: [] }, []);
     }
 }
 
-// Display channels
-function displayChannels(channels) {
-    const channelsList = document.getElementById('channelsList');
-    channelsList.innerHTML = '';
+// Display channels organized by categories
+function displayChannelsWithCategories(categoryData, allChannels) {
+    const container = document.getElementById('categoriesContainer');
+    if (!container) {
+        console.error('Categories container not found');
+        return;
+    }
+    
+    container.innerHTML = '';
+
+    // Display categorized channels
+    if (categoryData.categories && categoryData.categories.length > 0) {
+        categoryData.categories.forEach(category => {
+            const categoryDiv = createCategorySection(category, category.channels || []);
+            container.appendChild(categoryDiv);
+        });
+    }
+
+    // Display uncategorized channels
+    const uncategorized = categoryData.uncategorizedChannels || allChannels.filter(ch => !ch.category);
+    if (uncategorized.length > 0) {
+        const uncategorizedDiv = createCategorySection(
+            { name: 'TEXT CHANNELS', _id: null, collapsed: false },
+            uncategorized
+        );
+        container.appendChild(uncategorizedDiv);
+    }
+
+    // If no channels at all, show a message
+    if ((!categoryData.categories || categoryData.categories.length === 0) && uncategorized.length === 0) {
+        container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No channels yet. Create one to get started!</div>';
+    }
+}
+
+// Create a category section with channels
+function createCategorySection(category, channels) {
+    const categoryDiv = document.createElement('div');
+    categoryDiv.className = 'channel-category';
+    categoryDiv.dataset.categoryId = category._id || 'uncategorized';
+
+    const header = document.createElement('div');
+    header.className = 'category-header';
+    header.innerHTML = `
+        <span class="category-arrow">${category.collapsed ? '▶' : '▼'}</span>
+        <span class="category-name">${category.name.toUpperCase()}</span>
+        ${category._id ? '<span class="category-add" title="Add Channel">+</span>' : ''}
+    `;
+    
+    // Toggle collapse on header click
+    header.onclick = (e) => {
+        if (!e.target.classList.contains('category-add')) {
+            toggleCategory(category._id, channelsDiv);
+        }
+    };
+
+    categoryDiv.appendChild(header);
+
+    const channelsDiv = document.createElement('div');
+    channelsDiv.className = 'category-channels';
+    channelsDiv.style.display = category.collapsed ? 'none' : 'block';
 
     channels.forEach(channel => {
         const channelItem = document.createElement('div');
         channelItem.className = 'channel-item';
+        channelItem.dataset.channelId = channel._id;
+        
+        const icon = getChannelIcon(channel.type);
         channelItem.innerHTML = `
-            <span class="channel-icon">#</span>
+            <span class="channel-icon">${icon}</span>
             <span class="channel-name">${channel.name}</span>
         `;
         channelItem.onclick = () => selectChannel(channel._id, channel.name);
-        channelsList.appendChild(channelItem);
+        channelsDiv.appendChild(channelItem);
     });
+
+    categoryDiv.appendChild(channelsDiv);
+    return categoryDiv;
+}
+
+// Get icon for channel type
+function getChannelIcon(type) {
+    const icons = {
+        'text': '#',
+        'voice': '🔊',
+        'announcement': '📢',
+        'stage': '🎙️',
+        'forum': '💬'
+    };
+    return icons[type] || '#';
+}
+
+// Toggle category collapse
+function toggleCategory(categoryId, channelsDiv) {
+    const isHidden = channelsDiv.style.display === 'none';
+    channelsDiv.style.display = isHidden ? 'block' : 'none';
+    
+    const arrow = channelsDiv.previousElementSibling.querySelector('.category-arrow');
+    if (arrow) {
+        arrow.textContent = isHidden ? '▼' : '▶';
+    }
+    
+    // TODO: Save collapsed state to server if needed
+    if (categoryId) {
+        // Could save to localStorage or API
+    }
 }
 
 // Select channel
@@ -697,6 +796,44 @@ document.addEventListener('click', (e) => {
         menu.style.display = 'none';
     }
 });
+
+// Open create category modal
+function openCreateCategoryModal() {
+    if (!currentServer) {
+        alert('Please select a server first');
+        return;
+    }
+    
+    const categoryName = prompt('Enter category name (e.g., "TEXT CHANNELS", "VOICE CHANNELS"):');
+    if (categoryName && categoryName.trim()) {
+        createCategory(categoryName.trim());
+    }
+}
+
+// Create a new category
+async function createCategory(name) {
+    try {
+        const response = await fetch(`/api/categories/server/${currentServer}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name })
+        });
+
+        if (response.ok) {
+            // Reload channels to show new category
+            await loadChannels(currentServer);
+        } else {
+            const error = await response.json();
+            alert('Failed to create category: ' + (error.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error creating category:', error);
+        alert('Failed to create category');
+    }
+}
 
 // Initialize on load
 initializeUI();
