@@ -643,6 +643,7 @@ header h1 {
 .message-content-wrapper {
     flex: 1;
     min-width: 0;
+    position: relative;
 }
 
 .message-header {
