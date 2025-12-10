@@ -1042,3 +1042,673 @@ async function removeMemberFromServer(userId, username) {
 window.promoteMember = promoteMember;
 window.removeMemberFromServer = removeMemberFromServer;
 window.loadServerMembers = loadServerMembers;
+
+// ==================== REACTIONS SYSTEM ====================
+
+let currentEmojiPickerMessageId = null;
+const availableEmojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '✅', '❌', '⭐', '💯', '👏', '🙏', '💪', '🤔', '😎', '🤩', '🥳', '✨'];
+
+function showEmojiPicker(messageId, buttonElement) {
+    currentEmojiPickerMessageId = messageId;
+    
+    // Create emoji picker if doesn't exist
+    let picker = document.getElementById('emojiPicker');
+    if (!picker) {
+        picker = document.createElement('div');
+        picker.id = 'emojiPicker';
+        picker.className = 'emoji-picker';
+        picker.innerHTML = `
+            <div class="emoji-grid">
+                ${availableEmojis.map(emoji => `<span class="emoji-item" onclick="selectEmoji('${emoji}')">${emoji}</span>`).join('')}
+            </div>
+        `;
+        document.body.appendChild(picker);
+    }
+    
+    // Position near button
+    const rect = buttonElement.getBoundingClientRect();
+    picker.style.display = 'block';
+    picker.style.top = (rect.bottom + 5) + 'px';
+    picker.style.left = rect.left + 'px';
+    
+    // Close on click outside
+    setTimeout(() => {
+        document.addEventListener('click', closeEmojiPicker);
+    }, 100);
+}
+
+function closeEmojiPicker() {
+    const picker = document.getElementById('emojiPicker');
+    if (picker) picker.style.display = 'none';
+    document.removeEventListener('click', closeEmojiPicker);
+}
+
+async function selectEmoji(emoji) {
+    if (!currentEmojiPickerMessageId) return;
+    
+    try {
+        const response = await fetch(`/api/messages/${currentEmojiPickerMessageId}/react`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ emoji })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            updateMessageReactions(currentEmojiPickerMessageId, data.reactions);
+        }
+    } catch (error) {
+        console.error('Error adding reaction:', error);
+    }
+    
+    closeEmojiPicker();
+}
+
+function updateMessageReactions(messageId, reactions) {
+    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (!messageElement) return;
+    
+    let reactionsContainer = messageElement.querySelector('.message-reactions');
+    if (!reactionsContainer) {
+        reactionsContainer = document.createElement('div');
+        reactionsContainer.className = 'message-reactions';
+        messageElement.querySelector('.message-content-wrapper').appendChild(reactionsContainer);
+    }
+    
+    reactionsContainer.innerHTML = reactions.map(reaction => {
+        const isReacted = reaction.users.some(u => u._id === user.id || u === user.id);
+        const reactionClass = isReacted ? 'reaction reacted' : 'reaction';
+        const usersList = reaction.users.map(u => u.username || 'User').join(', ');
+        
+        return `
+            <div class="${reactionClass}" onclick="toggleReaction('${messageId}', '${reaction.emoji}')" title="${usersList}">
+                <span>${reaction.emoji}</span>
+                <span class="reaction-count">${reaction.count}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+async function toggleReaction(messageId, emoji) {
+    try {
+        const response = await fetch(`/api/messages/${messageId}/react`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ emoji })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            updateMessageReactions(messageId, data.reactions);
+        }
+    } catch (error) {
+        console.error('Error toggling reaction:', error);
+    }
+}
+
+window.showEmojiPicker = showEmojiPicker;
+window.selectEmoji = selectEmoji;
+window.toggleReaction = toggleReaction;
+
+// ==================== MESSAGE EDITING ====================
+
+let editingMessageId = null;
+let originalMessageContent = null;
+
+function enableMessageEdit(messageId) {
+    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (!messageElement) return;
+    
+    const contentElement = messageElement.querySelector('.message-text');
+    if (!contentElement) return;
+    
+    editingMessageId = messageId;
+    originalMessageContent = contentElement.textContent;
+    
+    const editContainer = document.createElement('div');
+    editContainer.className = 'message-editing';
+    editContainer.innerHTML = `
+        <textarea class="message-edit-input" id="editInput-${messageId}">${originalMessageContent}</textarea>
+        <div class="message-edit-actions">
+            <span>Press <strong>Enter</strong> to save • <strong>Esc</strong> to cancel</span>
+            <div>
+                <button class="btn btn-small btn-primary" onclick="saveMessageEdit('${messageId}')">✓ Save</button>
+                <button class="btn btn-small btn-secondary" onclick="cancelMessageEdit('${messageId}')">× Cancel</button>
+            </div>
+        </div>
+    `;
+    
+    contentElement.replaceWith(editContainer);
+    
+    const textarea = document.getElementById(`editInput-${messageId}`);
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    
+    textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            saveMessageEdit(messageId);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelMessageEdit(messageId);
+        }
+    });
+}
+
+async function saveMessageEdit(messageId) {
+    const textarea = document.getElementById(`editInput-${messageId}`);
+    if (!textarea) return;
+    
+    const newContent = textarea.value.trim();
+    if (!newContent || newContent === originalMessageContent) {
+        cancelMessageEdit(messageId);
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/messages/${messageId}/edit`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ content: newContent })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            const editContainer = messageElement.querySelector('.message-editing');
+            
+            const newContentElement = document.createElement('div');
+            newContentElement.className = 'message-text';
+            newContentElement.textContent = data.message.content;
+            
+            if (data.message.isEdited) {
+                const editedLabel = document.createElement('span');
+                editedLabel.className = 'message-edited-label';
+                editedLabel.textContent = '(edited)';
+                newContentElement.appendChild(editedLabel);
+            }
+            
+            editContainer.replaceWith(newContentElement);
+            editingMessageId = null;
+            originalMessageContent = null;
+        } else {
+            alert('Failed to edit message');
+        }
+    } catch (error) {
+        console.error('Error editing message:', error);
+        alert('Failed to edit message');
+    }
+}
+
+function cancelMessageEdit(messageId) {
+    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (!messageElement) return;
+    
+    const editContainer = messageElement.querySelector('.message-editing');
+    if (!editContainer) return;
+    
+    const contentElement = document.createElement('div');
+    contentElement.className = 'message-text';
+    contentElement.textContent = originalMessageContent;
+    
+    editContainer.replaceWith(contentElement);
+    editingMessageId = null;
+    originalMessageContent = null;
+}
+
+window.enableMessageEdit = enableMessageEdit;
+window.saveMessageEdit = saveMessageEdit;
+window.cancelMessageEdit = cancelMessageEdit;
+
+// ==================== CONTEXT MENU ====================
+
+function showContextMenu(event, messageId, message) {
+    event.preventDefault();
+    
+    // Remove existing context menu
+    const existing = document.getElementById('contextMenu');
+    if (existing) existing.remove();
+    
+    const isOwnMessage = message.sender._id === user.id || message.sender === user.id;
+    const isAdmin = user.role === 'admin' || user.role === 'master_admin';
+    
+    const contextMenu = document.createElement('div');
+    contextMenu.id = 'contextMenu';
+    contextMenu.className = 'context-menu';
+    
+    let menuItems = '';
+    
+    if (isOwnMessage) {
+        menuItems += `<div class="context-item" onclick="enableMessageEdit('${messageId}')">✏️ Edit Message</div>`;
+        menuItems += `<div class="context-item danger" onclick="deleteMessage('${messageId}')">🗑️ Delete Message</div>`;
+    }
+    
+    menuItems += `<div class="context-item" onclick="setReplyTo('${messageId}')">💬 Reply</div>`;
+    
+    if (!isOwnMessage) {
+        menuItems += `<div class="context-item" onclick="showReportModal('${messageId}')">🚩 Report Message</div>`;
+        menuItems += `<div class="context-item" onclick="showUserProfile('${message.sender._id || message.sender}')">👤 View Profile</div>`;
+    }
+    
+    menuItems += `<div class="context-item" onclick="copyMessageId('${messageId}')">📋 Copy Message ID</div>`;
+    
+    if (isAdmin) {
+        menuItems += `<div class="context-separator"></div>`;
+        menuItems += `<div class="context-item" onclick="quickMuteUser('${message.sender._id || message.sender}')">🔇 Mute User</div>`;
+        menuItems += `<div class="context-item danger" onclick="quickBanUser('${message.sender._id || message.sender}')">🔨 Ban User</div>`;
+    }
+    
+    contextMenu.innerHTML = menuItems;
+    
+    // Position context menu
+    contextMenu.style.left = event.pageX + 'px';
+    contextMenu.style.top = event.pageY + 'px';
+    
+    document.body.appendChild(contextMenu);
+    
+    // Close on click outside
+    setTimeout(() => {
+        document.addEventListener('click', hideContextMenu);
+        document.addEventListener('contextmenu', hideContextMenu);
+    }, 100);
+}
+
+function hideContextMenu() {
+    const contextMenu = document.getElementById('contextMenu');
+    if (contextMenu) contextMenu.remove();
+    document.removeEventListener('click', hideContextMenu);
+    document.removeEventListener('contextmenu', hideContextMenu);
+}
+
+function copyMessageId(messageId) {
+    navigator.clipboard.writeText(messageId);
+    showNotification('Message ID copied!');
+    hideContextMenu();
+}
+
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.className = 'notification-toast';
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: var(--success-color);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+window.showContextMenu = showContextMenu;
+window.copyMessageId = copyMessageId;
+
+// ==================== FRIENDS SYSTEM ====================
+
+async function loadFriends() {
+    try {
+        const response = await fetch('/api/friends', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const friends = await response.json();
+            displayFriends(friends);
+        }
+    } catch (error) {
+        console.error('Error loading friends:', error);
+    }
+}
+
+async function loadFriendRequests() {
+    try {
+        const response = await fetch('/api/friends/requests', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const requests = await response.json();
+            displayFriendRequests(requests);
+        }
+    } catch (error) {
+        console.error('Error loading friend requests:', error);
+    }
+}
+
+async function sendFriendRequest(username) {
+    if (!username || !username.trim()) {
+        alert('Please enter a username');
+        return;
+    }
+    
+    try {
+        // First find user by username
+        const searchResponse = await fetch(`/api/users/search?username=${encodeURIComponent(username)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!searchResponse.ok) {
+            alert('User not found');
+            return;
+        }
+        
+        const users = await searchResponse.json();
+        if (!users || users.length === 0) {
+            alert('User not found');
+            return;
+        }
+        
+        const targetUser = users[0];
+        
+        const response = await fetch('/api/friends/request', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ recipientId: targetUser._id })
+        });
+        
+        if (response.ok) {
+            showNotification('Friend request sent!');
+            document.getElementById('addFriendUsername').value = '';
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Failed to send friend request');
+        }
+    } catch (error) {
+        console.error('Error sending friend request:', error);
+        alert('Failed to send friend request');
+    }
+}
+
+async function acceptFriendRequest(requestId) {
+    try {
+        const response = await fetch(`/api/friends/accept/${requestId}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            showNotification('Friend request accepted!');
+            loadFriendRequests();
+            loadFriends();
+        }
+    } catch (error) {
+        console.error('Error accepting friend request:', error);
+    }
+}
+
+async function declineFriendRequest(requestId) {
+    try {
+        const response = await fetch(`/api/friends/decline/${requestId}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            showNotification('Friend request declined');
+            loadFriendRequests();
+        }
+    } catch (error) {
+        console.error('Error declining friend request:', error);
+    }
+}
+
+async function removeFriend(friendId) {
+    if (!confirm('Remove this friend?')) return;
+    
+    try {
+        const response = await fetch(`/api/friends/${friendId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            showNotification('Friend removed');
+            loadFriends();
+        }
+    } catch (error) {
+        console.error('Error removing friend:', error);
+    }
+}
+
+window.sendFriendRequest = sendFriendRequest;
+window.acceptFriendRequest = acceptFriendRequest;
+window.declineFriendRequest = declineFriendRequest;
+window.removeFriend = removeFriend;
+
+// ==================== REPORT MESSAGE ====================
+
+function showReportModal(messageId) {
+    currentReportMessageId = messageId;
+    openModal('reportModal');
+    hideContextMenu();
+}
+
+async function submitReport() {
+    const reason = document.getElementById('reportReason').value;
+    const details = document.getElementById('reportDetails').value;
+    
+    if (!reason) {
+        alert('Please select a reason');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/reports', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                messageId: currentReportMessageId,
+                reason,
+                details
+            })
+        });
+        
+        if (response.ok) {
+            showNotification('Report submitted. Admins will review it.');
+            closeModal('reportModal');
+            document.getElementById('reportReason').value = '';
+            document.getElementById('reportDetails').value = '';
+        } else {
+            alert('Failed to submit report');
+        }
+    } catch (error) {
+        console.error('Error submitting report:', error);
+        alert('Failed to submit report');
+    }
+}
+
+window.showReportModal = showReportModal;
+window.submitReport = submitReport;
+
+// ==================== SOCKET.IO EVENTS ====================
+
+socket.on('reactionAdded', (data) => {
+    updateMessageReactions(data.messageId, data.reactions);
+});
+
+socket.on('reactionRemoved', (data) => {
+    updateMessageReactions(data.messageId, data.reactions);
+});
+
+socket.on('messageEdited', (data) => {
+    const messageElement = document.querySelector(`[data-message-id="${data.messageId}"]`);
+    if (messageElement) {
+        const textElement = messageElement.querySelector('.message-text');
+        if (textElement) {
+            textElement.textContent = data.content;
+            if (data.isEdited) {
+                const editedLabel = document.createElement('span');
+                editedLabel.className = 'message-edited-label';
+                editedLabel.textContent = '(edited)';
+                textElement.appendChild(editedLabel);
+            }
+        }
+    }
+});
+
+socket.on('friendRequestReceived', (data) => {
+    showNotification(`Friend request from ${data.requester.username}`);
+    // Update friend requests badge if visible
+    loadFriendRequests();
+});
+
+socket.on('friendRequestAccepted', (data) => {
+    showNotification(`${data.accepter.username} accepted your friend request!`);
+    loadFriends();
+});
+
+console.log('Frontend integrations loaded successfully!');
+
+
+// ==================== FRIENDS MODAL HELPERS ====================
+
+let currentFriendsTab = 'all';
+
+function switchFriendsTab(tab) {
+    currentFriendsTab = tab;
+    
+    // Update tab styling
+    document.querySelectorAll('.friends-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Hide all tab contents
+    document.querySelectorAll('.friends-tab-content').forEach(c => c.style.display = 'none');
+    
+    // Show selected tab
+    if (tab === 'all') {
+        document.getElementById('friendsAllTab').style.display = 'block';
+        loadFriends();
+    } else if (tab === 'online') {
+        document.getElementById('friendsOnlineTab').style.display = 'block';
+        loadOnlineFriends();
+    } else if (tab === 'pending') {
+        document.getElementById('friendsPendingTab').style.display = 'block';
+        loadFriendRequests();
+    } else if (tab === 'add') {
+        document.getElementById('friendsAddTab').style.display = 'block';
+    }
+}
+
+function displayFriends(friends) {
+    const container = document.getElementById('friendsList');
+    if (!friends || friends.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No friends yet. Add some friends to get started!</p>';
+        return;
+    }
+    
+    container.innerHTML = friends.map(friendData => {
+        const friend = friendData.friend || friendData;
+        const initials = (friend.firstName?.[0] || '') + (friend.lastName?.[0] || '');
+        const isOnline = false; // TODO: Implement online status
+        
+        return `
+            <div class="friend-card">
+                <div class="friend-avatar">
+                    ${initials}
+                    <div class="friend-status ${isOnline ? 'online' : 'offline'}"></div>
+                </div>
+                <div class="friend-info">
+                    <div class="friend-name">${friend.firstName} ${friend.lastName}</div>
+                    <div class="friend-username">@${friend.username}</div>
+                </div>
+                <div class="friend-actions">
+                    <button class="btn btn-small btn-primary" onclick="startDm('${friend._id}')">💬 Message</button>
+                    <button class="btn btn-small btn-danger" onclick="removeFriend('${friend._id}')">Remove</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function displayFriendRequests(requests) {
+    const container = document.getElementById('friendsRequestsList');
+    if (!requests || requests.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No pending requests</p>';
+        return;
+    }
+    
+    container.innerHTML = requests.map(request => {
+        const requester = request.requester;
+        const initials = (requester.firstName?.[0] || '') + (requester.lastName?.[0] || '');
+        
+        return `
+            <div class="friend-card">
+                <div class="friend-avatar">${initials}</div>
+                <div class="friend-info">
+                    <div class="friend-name">${requester.firstName} ${requester.lastName}</div>
+                    <div class="friend-username">@${requester.username}</div>
+                </div>
+                <div class="friend-actions">
+                    <button class="btn btn-small btn-success" onclick="acceptFriendRequest('${request._id}')">Accept</button>
+                    <button class="btn btn-small btn-secondary" onclick="declineFriendRequest('${request._id}')">Decline</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function loadOnlineFriends() {
+    // Load all friends and filter for online
+    try {
+        const response = await fetch('/api/friends', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const friends = await response.json();
+            // TODO: Filter by online status when implemented
+            const container = document.getElementById('friendsOnlineList');
+            container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Online status coming soon!</p>';
+        }
+    } catch (error) {
+        console.error('Error loading online friends:', error);
+    }
+}
+
+function startDm(userId) {
+    // TODO: Implement starting DM with friend
+    closeModal('friendsModal');
+    // This would open DM with the user
+}
+
+window.switchFriendsTab = switchFriendsTab;
+window.displayFriends = displayFriends;
+window.displayFriendRequests = displayFriendRequests;
+window.startDm = startDm;
+
+// Initialize friends modal when friends button is clicked
+document.getElementById('friendsBtn')?.addEventListener('click', () => {
+    openModal('friendsModal');
+    loadFriends();
+});
+
+// Global variable for report
+let currentReportMessageId = null;
+
+console.log('All frontend features successfully integrated!');
+

@@ -564,7 +564,77 @@
         <div class="reaction-emoji" onclick="addReaction('❌')">❌</div>
     </div>
 
+
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <!-- Friends Modal -->
+    <div id="friendsModal" class="modal" style="display: none;">
+        <div class="modal-content friends-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Friends</h2>
+                <button class="modal-close" onclick="closeModal('friendsModal')">×</button>
+            </div>
+            <div class="friends-tabs">
+                <div class="friends-tab active" onclick="switchFriendsTab('all')">All</div>
+                <div class="friends-tab" onclick="switchFriendsTab('online')">Online</div>
+                <div class="friends-tab" onclick="switchFriendsTab('pending')">Pending</div>
+                <div class="friends-tab" onclick="switchFriendsTab('add')">Add Friend</div>
+            </div>
+            <div class="modal-body">
+                <div id="friendsAllTab" class="friends-tab-content">
+                    <div id="friendsList"></div>
+                </div>
+                <div id="friendsOnlineTab" class="friends-tab-content" style="display: none;">
+                    <div id="friendsOnlineList"></div>
+                </div>
+                <div id="friendsPendingTab" class="friends-tab-content" style="display: none;">
+                    <div id="friendsRequestsList"></div>
+                </div>
+                <div id="friendsAddTab" class="friends-tab-content" style="display: none;">
+                    <div class="form-group">
+                        <label>Add Friend by Username</label>
+                        <input type="text" id="addFriendUsername" class="user-search-input" placeholder="Enter username...">
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="sendFriendRequest(document.getElementById('addFriendUsername').value)">Send Friend Request</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Report Message</h2>
+                <button class="modal-close" onclick="closeModal('reportModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="reportReason">Reason</label>
+                    <select id="reportReason" class="user-search-input" required>
+                        <option value="">Select a reason...</option>
+                        <option value="spam">Spam or scam</option>
+                        <option value="harassment">Harassment or bullying</option>
+                        <option value="inappropriate">Inappropriate content</option>
+                        <option value="impersonation">Impersonation</option>
+                        <option value="self_harm">Self-harm or suicide</option>
+                        <option value="violence">Violence or threats</option>
+                        <option value="hate_speech">Hate speech</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="reportDetails">Additional Details (optional)</label>
+                    <textarea id="reportDetails" class="user-search-input" rows="4" placeholder="Provide more context about this report..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('reportModal')">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="submitReport()">Submit Report</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/chat.js"></script>
 </body>
 </html>
