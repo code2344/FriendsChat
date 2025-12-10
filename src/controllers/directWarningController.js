@@ -252,3 +252,33 @@ exports.getDirectWarning = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+// Update Direct Warning
+exports.updateDirectWarning = async (req, res) => {
+  try {
+    const { id } = req.params;  // matches :id in your route
+    const updates = req.body;
+
+    const dw = await DirectWarning.findById(id);
+    if (!dw) {
+      return res.status(404).json({ error: 'Direct Warning not found' });
+    }
+
+    // Only admins can update
+    if (!req.user.role || (req.user.role !== 'admin' && req.user.role !== 'master_admin')) {
+      return res.status(403).json({ error: 'Only admins can update Direct Warnings' });
+    }
+
+    // Apply updates (example: reason, punishment, etc.)
+    Object.keys(updates).forEach(key => {
+      dw[key] = updates[key];
+    });
+
+    dw.lastActivity = new Date();
+    await dw.save();
+
+    res.json({ message: 'Direct Warning updated', directWarning: dw });
+  } catch (error) {
+    console.error('Error updating Direct Warning:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
