@@ -175,18 +175,31 @@ async function loadUsers() {
 
 async function approveUser(userId) {
     try {
+        // Prompt for grade level if needed
+        const gradeLevel = prompt('Enter grade level (7-12) for student:', '9');
+        
         const response = await fetch(`/api/auth/approve/${userId}`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ gradeLevel: gradeLevel ? parseInt(gradeLevel) : null })
         });
 
+        const data = await response.json();
+        
         if (response.ok) {
             alert('User approved successfully');
             loadUsers();
             refreshDashboard();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to approve user'));
+            console.error('Approval error:', data);
         }
     } catch (error) {
         console.error('Error approving user:', error);
+        alert('Failed to approve user. Check console for details.');
     }
 }
 

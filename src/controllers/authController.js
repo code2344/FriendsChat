@@ -152,15 +152,20 @@ async function approveUser(req, res) {
     user.approvedAt = Date.now();
     await user.save();
 
-    // Initialize student info
-    if (gradeLevel) {
-      await initializeStudentInfo(
-        user._id,
-        user.firstName,
-        user.lastName,
-        user.studentId,
-        gradeLevel
-      );
+    // Initialize student info only for students with grade level
+    if (user.accountType === 'student' && gradeLevel) {
+      try {
+        await initializeStudentInfo(
+          user._id,
+          user.firstName,
+          user.lastName,
+          user.studentId,
+          parseInt(gradeLevel)
+        );
+      } catch (error) {
+        console.error('Failed to initialize student info:', error);
+        // Continue even if student info fails
+      }
     }
 
     res.json({
@@ -168,10 +173,15 @@ async function approveUser(req, res) {
       user: {
         id: user._id,
         username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        accountType: user.accountType,
         isApproved: user.isApproved
       }
     });
   } catch (error) {
+    console.error('Error approving user:', error);
     res.status(500).json({ error: 'Failed to approve user', details: error.message });
   }
 }
