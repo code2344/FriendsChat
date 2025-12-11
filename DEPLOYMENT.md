@@ -241,6 +241,31 @@ sudo certbot renew --dry-run
 
 ### 6. Security Hardening
 
+**Rate Limiting (Critical for Authorization Codes)**
+
+The authorization code feature requires rate limiting to prevent abuse:
+
+1. **Nginx Rate Limiting**
+   ```nginx
+   # Add to nginx.conf
+   limit_req_zone $binary_remote_addr zone=auth_codes:10m rate=10r/m;
+   
+   location /api/authorization-codes {
+       limit_req zone=auth_codes burst=5 nodelay;
+       proxy_pass http://localhost:3000;
+   }
+   ```
+
+2. **Application-Level (Alternative)**
+   - Install: `npm install express-rate-limit`
+   - Add middleware to protect authorization code routes
+   - See AUTHORIZATION_CODES.md for detailed recommendations
+
+3. **CloudFlare (Recommended)**
+   - Enable CloudFlare rate limiting rules
+   - Set up alerts for suspicious patterns
+   - Monitor authorization code access attempts
+
 ```bash
 # 1. Setup firewall
 sudo ufw allow 22/tcp    # SSH

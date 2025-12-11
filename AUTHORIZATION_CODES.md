@@ -206,6 +206,18 @@ Authorization code operations are logged in the AuditLog collection:
 - Non-admin access to lookup endpoint triggers security lockdown
 - All operations are logged with full audit trail
 
+### Rate Limiting (Production Recommendation)
+
+**Important:** Rate limiting is NOT implemented at the application level. In production:
+
+- Implement rate limiting at the infrastructure level (nginx, CloudFlare, etc.)
+- Recommended limits:
+  - Code lookup: 10 requests per minute per IP
+  - Code generation: 5 requests per minute per admin
+  - Code management: 20 requests per minute per admin
+- Monitor for suspicious patterns (multiple failed lookups)
+- Consider implementing exponential backoff for repeated violations
+
 ### Data Protection
 
 - Codes themselves are stored in plain text (they are not sensitive data)
