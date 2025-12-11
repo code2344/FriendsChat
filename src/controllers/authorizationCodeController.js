@@ -126,12 +126,12 @@ async function lookupAuthorizationCode(req, res) {
       req.user.isBanned = true;
       await req.user.save();
 
-      // Expire all codes created by this user
+      // Expire all codes created by this user (automatic security action)
       await AuthorizationCode.updateMany(
         { createdBy: req.user._id, isUsed: false, isExpired: false },
         { 
           isExpired: true,
-          expiredBy: req.user._id,
+          expiredBy: null, // null indicates automatic expiration due to security violation
           expiredAt: Date.now()
         }
       );

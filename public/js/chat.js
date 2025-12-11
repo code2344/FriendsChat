@@ -1915,12 +1915,15 @@ async function lookupAuthCode() {
                     A master administrator will review your account. Do not attempt to log in again.
                 </p>
             `;
-            // Force logout after 3 seconds
+            // Immediately disable UI and force logout
+            document.body.style.pointerEvents = 'none';
+            document.body.style.opacity = '0.5';
+            
             setTimeout(() => {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
                 window.location.href = '/login';
-            }, 3000);
+            }, 2000);
         } else {
             resultDiv.style.display = 'block';
             resultDiv.style.borderLeftColor = 'var(--error-color)';

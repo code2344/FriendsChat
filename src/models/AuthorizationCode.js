@@ -1,14 +1,17 @@
 const mongoose = require('mongoose');
 
+// Regex pattern for 8-digit codes
+const CODE_PATTERN = /^\d{8}$/;
+
 const authorizationCodeSchema = new mongoose.Schema({
   code: {
     type: String,
     required: true,
     unique: true,
-    match: /^\d{8}$/,
+    match: CODE_PATTERN,
     validate: {
       validator: function(v) {
-        return /^\d{8}$/.test(v);
+        return CODE_PATTERN.test(v);
       },
       message: 'Authorization code must be exactly 8 digits'
     }

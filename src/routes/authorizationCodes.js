@@ -10,6 +10,9 @@ router.post('/', authenticate, isAdmin, authorizationCodeController.createAuthor
 router.get('/', authenticate, isAdmin, authorizationCodeController.getAllAuthorizationCodes);
 
 // Lookup a specific authorization code (triggers security check for non-admins)
+// Note: This route intentionally allows non-admin access attempts to trigger security violations
+// Rate limiting should be implemented at the infrastructure level (e.g., nginx, CloudFlare)
+// to prevent DoS attacks via repeated lookups
 router.get('/:code', authenticate, authorizationCodeController.lookupAuthorizationCode);
 
 // Mark code as used (Admin only)
