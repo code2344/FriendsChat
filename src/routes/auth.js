@@ -9,6 +9,8 @@ router.post('/login', authController.login);
 
 // Authenticated routes
 router.get('/search-users', authenticate, authController.searchUsers);
+router.get('/status', authenticate, authController.checkStatus);
+router.post('/resubmit', authenticate, authController.resubmitRegistration);
 
 // Admin routes
 router.get('/pending-users', authenticate, isAdmin, authController.getPendingUsers);

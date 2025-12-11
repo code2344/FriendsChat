@@ -21,8 +21,13 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
             
-            // Redirect to chat
-            window.location.href = '/chat';
+            // Check if user is pending approval
+            if (data.pendingApproval || !data.user.isApproved) {
+                window.location.href = '/pending-approval';
+            } else {
+                // Redirect to chat
+                window.location.href = '/chat';
+            }
         } else {
             errorMessage.textContent = data.error || 'Login failed';
             errorMessage.style.display = 'block';

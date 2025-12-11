@@ -94,6 +94,10 @@ app.get('/banned', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/banned.html'));
 });
 
+app.get('/pending-approval', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/pending-approval.html'));
+});
+
 app.get('/donate', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/donate.html'));
 });

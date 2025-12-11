@@ -207,16 +207,21 @@ async function approveUser(userId) {
 }
 
 async function denyUser(userId) {
-    if (!confirm('Are you sure you want to deny this user?')) return;
+    const reason = prompt('Reason for denial (user will see this):');
+    if (!reason) return;
 
     try {
         const response = await fetch(`/api/auth/deny/${userId}`, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason })
         });
 
         if (response.ok) {
-            alert('User denied and removed');
+            alert('User denied. They can edit and resubmit their application.');
             loadUsers();
             refreshDashboard();
         }
