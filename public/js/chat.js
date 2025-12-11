@@ -1903,27 +1903,9 @@ async function lookupAuthCode() {
             `;
         } else if (response.status === 403 && data.contactAdmin) {
             // Account has been disabled for security violation
-            resultDiv.style.display = 'block';
-            resultDiv.style.borderLeftColor = 'var(--error-color)';
-            resultDiv.innerHTML = `
-                <h4 style="margin-top: 0; color: var(--error-color);">⚠️ SECURITY VIOLATION DETECTED</h4>
-                <p style="color: var(--error-color); margin-bottom: 12px;">
-                    ${data.error}
-                </p>
-                <p style="margin: 0; color: var(--text-muted);">
-                    Your account has been flagged for attempting to access restricted authorization codes. 
-                    A master administrator will review your account. Do not attempt to log in again.
-                </p>
-            `;
-            // Immediately disable UI and force logout
-            document.body.style.pointerEvents = 'none';
-            document.body.style.opacity = '0.5';
-            
-            setTimeout(() => {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                window.location.href = '/login';
-            }, 2000);
+            // Show dramatic ban animation
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            await showBanAnimation(user.username || 'User', true);
         } else {
             resultDiv.style.display = 'block';
             resultDiv.style.borderLeftColor = 'var(--error-color)';

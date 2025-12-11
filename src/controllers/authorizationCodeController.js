@@ -1,6 +1,7 @@
 const AuthorizationCode = require('../models/AuthorizationCode');
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
+const { sendSecurityViolationAlert } = require('../utils/emailNotifications');
 
 /**
  * Generate a random 8-digit authorization code
@@ -145,6 +146,14 @@ async function lookupAuthorizationCode(req, res) {
       });
 
       console.error(`SECURITY ALERT: Non-admin user ${req.user.username} (ID: ${req.user._id}) attempted to access authorization code ${code}. Account has been disabled.`);
+
+      // Send email notification to master admin and code creator
+      try {
+        await sendSecurityViolationAlert(req.user, code, authCode.createdBy);
+      } catch (emailError) {
+        console.error('Failed to send security violation email:', emailError);
+        // Continue even if email fails
+      }
 
       return res.status(403).json({ 
         error: 'Unauthorized access detected. Your account has been disabled pending review by a master admin.',

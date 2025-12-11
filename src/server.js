@@ -27,6 +27,7 @@ const directWarningRoutes = require('./routes/directWarnings');
 const reactionRoutes = require('./routes/reactions');
 const friendRoutes = require('./routes/friends');
 const authorizationCodeRoutes = require('./routes/authorizationCodes');
+const banAppealRoutes = require('./routes/banAppeal');
 
 const app = express();
 const server = http.createServer(app);
@@ -62,6 +63,7 @@ app.use('/api/direct-warnings', directWarningRoutes);
 app.use('/api/messages', reactionRoutes); // Reactions are on messages/:id/react
 app.use('/api/friends', friendRoutes);
 app.use('/api/authorization-codes', authorizationCodeRoutes);
+app.use('/api/ban-appeal', banAppealRoutes);
 
 // Serve HTML pages
 app.get('/', (req, res) => {
@@ -86,6 +88,10 @@ app.get('/admin', (req, res) => {
 
 app.get('/teacher-access', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/teacher-access.html'));
+});
+
+app.get('/banned', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/banned.html'));
 });
 
 app.get('/donate', (req, res) => {
