@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Access Request - FriendsChat</title>
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+    <div class="container teacher-access-page">
+        <header>
+            <img src="/icons/friendschat-logo.png" alt="FriendsChat Logo" style="height: 60px; margin-bottom: 10px;">
+            <h1>Teacher Access Request</h1>
+            <p>Request access to student data for educational purposes</p>
+        </header>
+
+        <main>
+            <div class="notice">
+                <h3>Important Information</h3>
+                <ul>
+                    <li>All requests must provide a valid educational reason</li>
+                    <li>Requests require approval from the master administrator OR at least three regular administrators</li>
+                    <li>All requests are logged and tracked for compliance</li>
+                    <li>Access is granted for legitimate educational purposes only</li>
+                </ul>
+            </div>
+
+            <form id="teacherAccessForm" class="auth-form">
+                <div class="form-group">
+                    <label for="teacherName">Your Name *</label>
+                    <input type="text" id="teacherName" name="teacherName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="teacherEmail">Your Email *</label>
+                    <input type="email" id="teacherEmail" name="teacherEmail" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="studentId">Student Username or ID *</label>
+                    <input type="text" id="studentId" name="studentId" required>
+                    <small>Enter the username or student ID of the student</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="reason">Reason for Access Request *</label>
+                    <textarea id="reason" name="reason" rows="5" required></textarea>
+                    <small>Please provide a detailed explanation of why you need access to this student's data</small>
+                </div>
+
+                <div id="errorMessage" class="error-message"></div>
+                <div id="successMessage" class="success-message"></div>
+
+                <button type="submit" class="btn btn-primary">Submit Request</button>
+            </form>
+
+            <div class="auth-links">
+                <p><a href="/">Back to Home</a></p>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/teacher-access.js"></script>
+</body>
+</html>

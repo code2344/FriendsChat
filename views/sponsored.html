@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sponsored Servers - FriendsChat</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <style>
+        .sponsored-container {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 30px;
+        }
+        .sponsored-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .sponsored-header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+        .sponsored-header p {
+            color: var(--text-secondary);
+            font-size: 18px;
+        }
+        .sponsor-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            color: white;
+            text-align: center;
+        }
+        .sponsor-info h2 {
+            margin-top: 0;
+            font-size: 28px;
+        }
+        .sponsor-info p {
+            font-size: 16px;
+            margin: 15px 0;
+        }
+        .btn-sponsor {
+            background: white;
+            color: #667eea;
+            padding: 12px 30px;
+            border-radius: 8px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+            transition: all 0.3s;
+        }
+        .btn-sponsor:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .servers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        .server-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .server-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-color: var(--accent);
+        }
+        .server-card.featured {
+            border-color: #ffd700;
+            background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,215,0,0.05) 100%);
+        }
+        .server-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin: 0 auto 15px;
+        }
+        .server-icon img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .server-name {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        .server-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-align: center;
+            min-height: 60px;
+        }
+        .server-stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 15px;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--accent);
+        }
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        .server-type-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 5px;
+        }
+        .badge-featured {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #000;
+        }
+        .badge-sponsored {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .badge-promoted {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+        .btn-join {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-join:hover {
+            background: var(--accent-hover);
+        }
+        .no-servers {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+        .no-servers h3 {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        .filter-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            background: var(--surface);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .filter-btn:hover, .filter-btn.active {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="sponsored-container">
+        <div class="sponsored-header">
+            <img src="/icons/friendschat-logo.png" alt="FriendsChat Logo" style="height: 70px; margin-bottom: 15px;">
+            <h1>🌟 Sponsored Servers</h1>
+            <p>Discover amazing communities and help support FriendsChat!</p>
+        </div>
+
+        <div class="sponsor-info">
+            <h2>💼 Want to sponsor your server?</h2>
+            <p>Get your server featured for just $2/month!</p>
+            <p>✨ Increased visibility • 📊 Analytics tracking • 🎯 30-day duration</p>
+            <button class="btn-sponsor" onclick="window.location.href='/chat'">Sponsor My Server</button>
+        </div>
+
+        <div class="filter-section">
+            <button class="filter-btn active" onclick="filterServers('all')">All</button>
+            <button class="filter-btn" onclick="filterServers('featured')">Featured</button>
+            <button class="filter-btn" onclick="filterServers('sponsored')">Sponsored</button>
+            <button class="filter-btn" onclick="filterServers('promoted')">Promoted</button>
+        </div>
+
+        <div class="servers-grid" id="serversGrid">
+            <div class="no-servers">
+                <h3>Loading servers...</h3>
+                <p>Please wait while we fetch sponsored servers</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        let allServers = [];
+        let currentFilter = 'all';
+
+        async function loadSponsoredServers() {
+            try {
+                const response = await fetch(`${API_URL}/sponsorships/sponsored`);
+                const sponsorships = await response.json();
+                
+                allServers = sponsorships;
+                displayServers(sponsorships);
+
+                // Track views
+                sponsorships.forEach(s => {
+                    fetch(`${API_URL}/sponsorships/${s._id}/view`, { method: 'POST' })
+                        .catch(() => {});
+                });
+            } catch (error) {
+                console.error('Error loading servers:', error);
+                document.getElementById('serversGrid').innerHTML = `
+                    <div class="no-servers">
+                        <h3>Error loading servers</h3>
+                        <p>Please try again later</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayServers(servers) {
+            const grid = document.getElementById('serversGrid');
+
+            if (servers.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-servers">
+                        <h3>No sponsored servers yet</h3>
+                        <p>Be the first to sponsor your server!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = servers.map(s => {
+                const server = s.server;
+                const badgeClass = `badge-${s.sponsorshipType}`;
+                const featuredClass = s.sponsorshipType === 'featured' ? 'featured' : '';
+
+                return `
+                    <div class="server-card ${featuredClass}" onclick="joinServer('${s._id}', '${server._id}')">
+                        <div class="server-icon">
+                            ${server.icon ? (server.icon.startsWith('http') ? 
+                                `<img src="${server.icon}" alt="${server.name}">` : 
+                                server.icon) : 
+                            '🌐'}
+                        </div>
+                        <div class="server-name">${server.name}</div>
+                        <div style="text-align: center;">
+                            <span class="server-type-badge ${badgeClass}">
+                                ${s.sponsorshipType.toUpperCase()}
+                            </span>
+                        </div>
+                        <div class="server-description">
+                            ${server.description || 'Join our amazing community!'}
+                        </div>
+                        <div class="server-stats">
+                            <div class="stat">
+                                <div class="stat-value">${server.members?.length || 0}</div>
+                                <div class="stat-label">Members</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${s.views || 0}</div>
+                                <div class="stat-label">Views</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${s.clicks || 0}</div>
+                                <div class="stat-label">Clicks</div>
+                            </div>
+                        </div>
+                        <button class="btn-join">Join Server</button>
+                    </div>
+                `;
+            }).join('');
+
+            grid.innerHTML = html;
+        }
+
+        function filterServers(type) {
+            currentFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (type === 'all') {
+                displayServers(allServers);
+            } else {
+                const filtered = allServers.filter(s => s.sponsorshipType === type);
+                displayServers(filtered);
+            }
+        }
+
+        async function joinServer(sponsorshipId, serverId) {
+            // Track click
+            try {
+                await fetch(`${API_URL}/sponsorships/${sponsorshipId}/click`, { method: 'POST' });
+            } catch (error) {
+                console.error('Error tracking click:', error);
+            }
+
+            // Redirect to chat with server
+            window.location.href = `/chat?server=${serverId}`;
+        }
+
+        // Load servers on page load
+        loadSponsoredServers();
+    </script>
+</body>
+</html>
