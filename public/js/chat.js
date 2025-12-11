@@ -1838,10 +1838,32 @@ let currentReportMessageId = null;
 
 // ==================== AUTHORIZATION CODE LOOKUP ====================
 
-async function lookupAuthCode() {
-    const codeInput = document.getElementById('authCodeInput');
-    const code = codeInput.value.trim();
+/**
+ * Handle input that could be either a username or authorization code
+ */
+async function handleFriendOrCodeInput(input) {
+    if (!input || !input.trim()) {
+        alert('Please enter a username or code');
+        return;
+    }
+    
+    const trimmedInput = input.trim();
+    
+    // Check if input is an 8-digit code
+    if (/^\d{8}$/.test(trimmedInput)) {
+        await lookupAuthCode(trimmedInput);
+    } else {
+        // Treat as username
+        await sendFriendRequest(trimmedInput);
+    }
+}
+
+async function lookupAuthCode(code) {
     const resultDiv = document.getElementById('authCodeResult');
+    
+    if (!code) {
+        code = document.getElementById('addFriendUsername').value.trim();
+    }
     
     if (!code || !/^\d{8}$/.test(code)) {
         resultDiv.style.display = 'block';
@@ -1948,8 +1970,192 @@ async function markCodeAsUsed(code) {
     }
 }
 
+window.handleFriendOrCodeInput = handleFriendOrCodeInput;
 window.lookupAuthCode = lookupAuthCode;
 window.markCodeAsUsed = markCodeAsUsed;
+
+// ==================== USER PROFILE ====================
+
+/**
+ * Load user profile data into settings modal
+ */
+async function loadProfileData() {
+    try {
+        const response = await fetch('/api/profile/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const profile = await response.json();
+            
+            // Populate bio
+            const bioInput = document.getElementById('profileBioInput');
+            if (bioInput && profile.bio) {
+                bioInput.value = profile.bio;
+                updateBioCharCount();
+            }
+            
+            // Populate pronouns
+            const pronounsInput = document.getElementById('profilePronounsInput');
+            if (pronounsInput && profile.pronouns) {
+                pronounsInput.value = profile.pronouns;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading profile data:', error);
+    }
+}
+
+/**
+ * Save profile changes
+ */
+async function saveProfile() {
+    const bio = document.getElementById('profileBioInput').value.trim();
+    const pronouns = document.getElementById('profilePronounsInput').value.trim();
+    
+    try {
+        const response = await fetch('/api/profile/me', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ bio, pronouns })
+        });
+        
+        if (response.ok) {
+            showNotification('Profile updated successfully');
+            
+            // Update local user data
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            user.bio = bio;
+            user.pronouns = pronouns;
+            localStorage.setItem('user', JSON.stringify(user));
+        } else {
+            const data = await response.json();
+            alert(`Error: ${data.error || 'Failed to update profile'}`);
+        }
+    } catch (error) {
+        console.error('Error saving profile:', error);
+        alert('Failed to update profile');
+    }
+}
+
+/**
+ * Update bio character count
+ */
+function updateBioCharCount() {
+    const bioInput = document.getElementById('profileBioInput');
+    const charCount = document.getElementById('bioCharCount');
+    
+    if (bioInput && charCount) {
+        const length = bioInput.value.length;
+        charCount.textContent = `${length}/190`;
+        charCount.style.color = length > 180 ? 'var(--warning-color)' : 'var(--text-muted)';
+    }
+}
+
+/**
+ * View another user's profile
+ */
+async function viewUserProfile(userId) {
+    try {
+        const response = await fetch(`/api/profile/${userId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const profile = await response.json();
+            displayUserProfile(profile);
+            openModal('userProfileModal');
+        } else {
+            alert('Failed to load user profile');
+        }
+    } catch (error) {
+        console.error('Error loading user profile:', error);
+        alert('Failed to load user profile');
+    }
+}
+
+/**
+ * Display user profile in modal
+ */
+function displayUserProfile(profile) {
+    // Set username
+    const usernameEl = document.getElementById('profileUsername');
+    if (usernameEl) {
+        usernameEl.textContent = `${profile.firstName} (@${profile.username})`;
+    }
+    
+    // Set bio
+    const bioEl = document.getElementById('profileBio');
+    if (bioEl) {
+        bioEl.textContent = profile.bio || 'No bio yet';
+        bioEl.style.fontStyle = profile.bio ? 'normal' : 'italic';
+    }
+    
+    // Set avatar
+    const avatarEl = document.getElementById('profileAvatar');
+    if (avatarEl) {
+        if (profile.avatar) {
+            avatarEl.style.backgroundImage = `url(${profile.avatar})`;
+            avatarEl.style.backgroundSize = 'cover';
+            avatarEl.textContent = '';
+        } else {
+            avatarEl.textContent = profile.firstName.charAt(0).toUpperCase();
+            avatarEl.style.backgroundImage = 'none';
+        }
+    }
+    
+    // Set banner
+    const bannerEl = document.getElementById('profileBanner');
+    if (bannerEl && profile.banner) {
+        bannerEl.style.backgroundImage = `url(${profile.banner})`;
+        bannerEl.style.backgroundSize = 'cover';
+    }
+    
+    // Set badges
+    const badgesEl = document.getElementById('profileBadges');
+    if (badgesEl && profile.badges && profile.badges.length > 0) {
+        badgesEl.innerHTML = profile.badges.map(badge => {
+            const badgeIcons = {
+                staff: '🛡️',
+                partner: '🤝',
+                verified: '✓',
+                early_supporter: '⭐',
+                bug_hunter: '🐛',
+                contributor: '💻',
+                donor: '💎',
+                teacher: '📚'
+            };
+            return `<span style="font-size: 24px;" title="${badge}">${badgeIcons[badge] || '🏅'}</span>`;
+        }).join('');
+    }
+    
+    // Store profile ID for actions
+    window.currentProfileUserId = profile._id;
+}
+
+// Add bio character count listener
+document.addEventListener('DOMContentLoaded', () => {
+    const bioInput = document.getElementById('profileBioInput');
+    if (bioInput) {
+        bioInput.addEventListener('input', updateBioCharCount);
+    }
+});
+
+// Load profile data when settings modal is opened
+const originalOpenModal = window.openModal;
+window.openModal = function(modalId) {
+    originalOpenModal(modalId);
+    if (modalId === 'settingsModal') {
+        loadProfileData();
+    }
+};
+
+window.saveProfile = saveProfile;
+window.viewUserProfile = viewUserProfile;
+window.loadProfileData = loadProfileData;
 
 console.log('All frontend features successfully integrated!');
 

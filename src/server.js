@@ -28,6 +28,7 @@ const reactionRoutes = require('./routes/reactions');
 const friendRoutes = require('./routes/friends');
 const authorizationCodeRoutes = require('./routes/authorizationCodes');
 const banAppealRoutes = require('./routes/banAppeal');
+const profileRoutes = require('./routes/profile');
 
 const app = express();
 const server = http.createServer(app);
@@ -64,6 +65,7 @@ app.use('/api/messages', reactionRoutes); // Reactions are on messages/:id/react
 app.use('/api/friends', friendRoutes);
 app.use('/api/authorization-codes', authorizationCodeRoutes);
 app.use('/api/ban-appeal', banAppealRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Serve HTML pages
 app.get('/', (req, res) => {

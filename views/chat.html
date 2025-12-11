@@ -439,6 +439,21 @@
                     </div>
                 </div>
                 <div class="settings-section">
+                    <h3>Profile</h3>
+                    <div class="form-group">
+                        <label>Bio (max 190 characters)</label>
+                        <textarea id="profileBioInput" class="user-search-input" maxlength="190" rows="3" placeholder="Tell us about yourself..."></textarea>
+                        <span id="bioCharCount" style="font-size: 12px; color: var(--text-muted);">0/190</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Pronouns</label>
+                        <input type="text" id="profilePronounsInput" class="user-search-input" placeholder="e.g., they/them, he/him, she/her">
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-primary" onclick="saveProfile()" style="width: 100%;">Save Profile</button>
+                    </div>
+                </div>
+                <div class="settings-section">
                     <h3>Privacy</h3>
                     <div class="form-group">
                         <label>Allow Direct Messages From</label>
@@ -590,19 +605,9 @@
                 </div>
                 <div id="friendsAddTab" class="friends-tab-content" style="display: none;">
                     <div class="form-group">
-                        <label>Add Friend by Username</label>
-                        <input type="text" id="addFriendUsername" class="user-search-input" placeholder="Enter username...">
-                        <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="sendFriendRequest(document.getElementById('addFriendUsername').value)">Send Friend Request</button>
-                    </div>
-                    
-                    <div style="margin: 24px 0; text-align: center; color: var(--text-muted);">
-                        <span style="padding: 0 10px; background: var(--background-secondary);">OR</span>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Lookup Authorization Code</label>
-                        <input type="text" id="authCodeInput" class="user-search-input" placeholder="Enter 8-digit code..." maxlength="8" pattern="[0-9]{8}">
-                        <button class="btn btn-secondary" style="width: 100%; margin-top: 8px;" onclick="lookupAuthCode()">Lookup Code</button>
+                        <label>Add Friend by Username or Code</label>
+                        <input type="text" id="addFriendUsername" class="user-search-input" placeholder="Enter username or 8-digit code...">
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="handleFriendOrCodeInput(document.getElementById('addFriendUsername').value)">Add Friend</button>
                     </div>
                     
                     <div id="authCodeResult" style="display: none; margin-top: 16px; padding: 16px; background: var(--background-tertiary); border-radius: 8px; border-left: 4px solid var(--primary-color);">
