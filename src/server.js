@@ -29,6 +29,7 @@ const friendRoutes = require('./routes/friends');
 const authorizationCodeRoutes = require('./routes/authorizationCodes');
 const banAppealRoutes = require('./routes/banAppeal');
 const profileRoutes = require('./routes/profile');
+const uploadRoutes = require('./routes/upload');
 
 const app = express();
 const server = http.createServer(app);
@@ -66,6 +67,7 @@ app.use('/api/friends', friendRoutes);
 app.use('/api/authorization-codes', authorizationCodeRoutes);
 app.use('/api/ban-appeal', banAppealRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Serve HTML pages
 app.get('/', (req, res) => {

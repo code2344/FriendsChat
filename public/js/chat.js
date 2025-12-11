@@ -2157,5 +2157,142 @@ window.saveProfile = saveProfile;
 window.viewUserProfile = viewUserProfile;
 window.loadProfileData = loadProfileData;
 
+// ==================== FILE UPLOADS ====================
+
+/**
+ * Upload avatar
+ */
+async function uploadAvatar(file) {
+    if (!file) return;
+    
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Avatar file too large. Maximum size is 5MB.');
+        return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('avatar', file);
+    
+    try {
+        showNotification('Uploading avatar...');
+        
+        const response = await fetch('/api/upload/avatar', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('Avatar uploaded successfully!');
+            
+            // Update preview
+            const currentAvatar = document.getElementById('currentAvatar');
+            if (currentAvatar) {
+                currentAvatar.style.backgroundImage = `url(${data.url})`;
+                currentAvatar.style.backgroundSize = 'cover';
+                currentAvatar.textContent = '';
+            }
+            
+            // Update local user data
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            user.avatar = data.url;
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            // Update user avatar display
+            updateUserAvatar(data.url);
+        } else {
+            alert(`Error: ${data.error || 'Failed to upload avatar'}`);
+        }
+    } catch (error) {
+        console.error('Error uploading avatar:', error);
+        alert('Failed to upload avatar');
+    }
+}
+
+/**
+ * Upload banner
+ */
+async function uploadBanner(file) {
+    if (!file) return;
+    
+    // Validate file size (8MB)
+    if (file.size > 8 * 1024 * 1024) {
+        alert('Banner file too large. Maximum size is 8MB.');
+        return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('banner', file);
+    
+    try {
+        showNotification('Uploading banner...');
+        
+        const response = await fetch('/api/upload/banner', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('Banner uploaded successfully!');
+            
+            // Update preview
+            const currentBanner = document.getElementById('currentBanner');
+            if (currentBanner) {
+                currentBanner.style.backgroundImage = `url(${data.url})`;
+                currentBanner.style.backgroundSize = 'cover';
+            }
+            
+            // Update local user data
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            user.banner = data.url;
+            localStorage.setItem('user', JSON.stringify(user));
+        } else {
+            alert(`Error: ${data.error || 'Failed to upload banner'}`);
+        }
+    } catch (error) {
+        console.error('Error uploading banner:', error);
+        alert('Failed to upload banner');
+    }
+}
+
+/**
+ * Update user avatar display in UI
+ */
+function updateUserAvatar(avatarUrl) {
+    const userAvatar = document.getElementById('userAvatar');
+    if (userAvatar) {
+        if (avatarUrl) {
+            userAvatar.style.backgroundImage = `url(${avatarUrl})`;
+            userAvatar.style.backgroundSize = 'cover';
+            userAvatar.textContent = '';
+        }
+    }
+}
+
+window.uploadAvatar = uploadAvatar;
+window.uploadBanner = uploadBanner;
+
 console.log('All frontend features successfully integrated!');
 

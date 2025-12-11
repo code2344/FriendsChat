@@ -441,6 +441,26 @@
                 <div class="settings-section">
                     <h3>Profile</h3>
                     <div class="form-group">
+                        <label>Profile Picture</label>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <div id="currentAvatar" style="width: 60px; height: 60px; border-radius: 50%; background: var(--primary-color); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;"></div>
+                            <div>
+                                <input type="file" id="avatarUpload" accept="image/*" style="display: none;" onchange="uploadAvatar(this.files[0])">
+                                <button class="btn btn-secondary" onclick="document.getElementById('avatarUpload').click()">Change Avatar</button>
+                                <p style="font-size: 12px; color: var(--text-muted); margin: 4px 0 0 0;">Max 5MB (JPG, PNG, GIF, WebP)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Profile Banner</label>
+                        <div style="margin-bottom: 12px;">
+                            <div id="currentBanner" style="width: 100%; height: 80px; border-radius: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+                            <input type="file" id="bannerUpload" accept="image/*" style="display: none;" onchange="uploadBanner(this.files[0])">
+                            <button class="btn btn-secondary" onclick="document.getElementById('bannerUpload').click()" style="margin-top: 8px;">Change Banner</button>
+                            <p style="font-size: 12px; color: var(--text-muted); margin: 4px 0 0 0;">Max 8MB (JPG, PNG, GIF, WebP)</p>
+                        </div>
+                    </div>
+                    <div class="form-group">
                         <label>Bio (max 190 characters)</label>
                         <textarea id="profileBioInput" class="user-search-input" maxlength="190" rows="3" placeholder="Tell us about yourself..."></textarea>
                         <span id="bioCharCount" style="font-size: 12px; color: var(--text-muted);">0/190</span>
