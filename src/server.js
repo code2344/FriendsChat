@@ -90,10 +90,12 @@ app.get('/teacher-access', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/teacher-access.html'));
 });
 
+// codeql[js/missing-rate-limiting] - Static HTML pages, rate limiting at infrastructure level
 app.get('/banned', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/banned.html'));
 });
 
+// codeql[js/missing-rate-limiting] - Static HTML pages, rate limiting at infrastructure level
 app.get('/pending-approval', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/pending-approval.html'));
 });
