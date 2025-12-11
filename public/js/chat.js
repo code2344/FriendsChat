@@ -1836,5 +1836,135 @@ document.getElementById('friendsBtn')?.addEventListener('click', () => {
 // Global variable for report
 let currentReportMessageId = null;
 
+// ==================== AUTHORIZATION CODE LOOKUP ====================
+
+async function lookupAuthCode() {
+    const codeInput = document.getElementById('authCodeInput');
+    const code = codeInput.value.trim();
+    const resultDiv = document.getElementById('authCodeResult');
+    
+    if (!code || !/^\d{8}$/.test(code)) {
+        resultDiv.style.display = 'block';
+        resultDiv.style.borderLeftColor = 'var(--error-color)';
+        resultDiv.innerHTML = '<p style="color: var(--error-color); margin: 0;">Please enter a valid 8-digit code.</p>';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/authorization-codes/${code}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Display code information
+            resultDiv.style.display = 'block';
+            resultDiv.style.borderLeftColor = 'var(--success-color)';
+            resultDiv.innerHTML = `
+                <h4 style="margin-top: 0; color: var(--text-bright);">Authorization Code Information</h4>
+                <div style="margin-bottom: 8px;">
+                    <strong>Code:</strong> <span style="font-family: monospace; font-size: 16px;">${data.code}</span>
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <strong>Description:</strong> ${data.description}
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <strong>Created By:</strong> ${data.createdBy.name} (@${data.createdBy.username})
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <strong>Created:</strong> ${new Date(data.createdAt).toLocaleString()}
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <strong>Status:</strong> 
+                    <span style="color: ${data.isExpired ? 'var(--error-color)' : data.isUsed ? 'var(--warning-color)' : 'var(--success-color)'};">
+                        ${data.isExpired ? 'EXPIRED' : data.isUsed ? 'USED' : 'ACTIVE'}
+                    </span>
+                </div>
+                ${data.isUsed ? `
+                    <div style="margin-bottom: 8px;">
+                        <strong>Used By:</strong> ${data.usedBy.name} (@${data.usedBy.username})
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Used On:</strong> ${new Date(data.usedAt).toLocaleString()}
+                    </div>
+                ` : ''}
+                ${data.securityWarning ? `
+                    <div style="margin-top: 12px; padding: 12px; background: var(--error-color); color: white; border-radius: 4px;">
+                        <strong>⚠️ Security Warning:</strong><br>
+                        ${data.securityWarning}
+                    </div>
+                ` : ''}
+                ${!data.isUsed && !data.isExpired ? `
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 12px;" onclick="markCodeAsUsed('${code}')">
+                        Mark as Used
+                    </button>
+                ` : ''}
+            `;
+        } else if (response.status === 403 && data.contactAdmin) {
+            // Account has been disabled for security violation
+            resultDiv.style.display = 'block';
+            resultDiv.style.borderLeftColor = 'var(--error-color)';
+            resultDiv.innerHTML = `
+                <h4 style="margin-top: 0; color: var(--error-color);">⚠️ SECURITY VIOLATION DETECTED</h4>
+                <p style="color: var(--error-color); margin-bottom: 12px;">
+                    ${data.error}
+                </p>
+                <p style="margin: 0; color: var(--text-muted);">
+                    Your account has been flagged for attempting to access restricted authorization codes. 
+                    A master administrator will review your account. Do not attempt to log in again.
+                </p>
+            `;
+            // Force logout after 3 seconds
+            setTimeout(() => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }, 3000);
+        } else {
+            resultDiv.style.display = 'block';
+            resultDiv.style.borderLeftColor = 'var(--error-color)';
+            resultDiv.innerHTML = `<p style="color: var(--error-color); margin: 0;">${data.error || 'Failed to lookup code'}</p>`;
+        }
+    } catch (error) {
+        console.error('Error looking up authorization code:', error);
+        resultDiv.style.display = 'block';
+        resultDiv.style.borderLeftColor = 'var(--error-color)';
+        resultDiv.innerHTML = '<p style="color: var(--error-color); margin: 0;">An error occurred while looking up the code.</p>';
+    }
+}
+
+async function markCodeAsUsed(code) {
+    if (!confirm('Mark this code as used? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/authorization-codes/${code}/use`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('Code marked as used successfully');
+            // Refresh the lookup to show updated status
+            lookupAuthCode();
+        } else {
+            alert(`Error: ${data.error || 'Failed to mark code as used'}`);
+        }
+    } catch (error) {
+        console.error('Error marking code as used:', error);
+        alert('Failed to mark code as used');
+    }
+}
+
+window.lookupAuthCode = lookupAuthCode;
+window.markCodeAsUsed = markCodeAsUsed;
+
 console.log('All frontend features successfully integrated!');
 

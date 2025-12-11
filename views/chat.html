@@ -594,6 +594,20 @@
                         <input type="text" id="addFriendUsername" class="user-search-input" placeholder="Enter username...">
                         <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="sendFriendRequest(document.getElementById('addFriendUsername').value)">Send Friend Request</button>
                     </div>
+                    
+                    <div style="margin: 24px 0; text-align: center; color: var(--text-muted);">
+                        <span style="padding: 0 10px; background: var(--background-secondary);">OR</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Lookup Authorization Code</label>
+                        <input type="text" id="authCodeInput" class="user-search-input" placeholder="Enter 8-digit code..." maxlength="8" pattern="[0-9]{8}">
+                        <button class="btn btn-secondary" style="width: 100%; margin-top: 8px;" onclick="lookupAuthCode()">Lookup Code</button>
+                    </div>
+                    
+                    <div id="authCodeResult" style="display: none; margin-top: 16px; padding: 16px; background: var(--background-tertiary); border-radius: 8px; border-left: 4px solid var(--primary-color);">
+                        <!-- Code lookup results will appear here -->
+                    </div>
                 </div>
             </div>
         </div>
