@@ -426,8 +426,8 @@
         window.resubmitRegistration = resubmitRegistration;
         window.logout = logout;
         
-        // Auto-check status every 30 seconds
-        setInterval(checkApprovalStatus, 30000);
+        // Auto-check status every 60 seconds (reduced from 30 to minimize server load)
+        setInterval(checkApprovalStatus, 60000);
     </script>
 </body>
 </html>

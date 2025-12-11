@@ -217,6 +217,11 @@ async function denyUser(req, res) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Cannot deny an already approved user
+    if (user.isApproved) {
+      return res.status(400).json({ error: 'Cannot deny an approved user' });
+    }
+
     // Mark as denied instead of deleting
     user.isDenied = true;
     user.denialReason = reason || 'No reason provided';

@@ -49,7 +49,7 @@ async function showBanAnimation(username, actualBan = true) {
         text-align: center;
         animation: fadeOut 5s forwards;
     `;
-    disclaimer.textContent = 'No, this is not an accident and your computer has not gone flat.';
+    disclaimer.textContent = 'No, this is not an accident and your computer has not crashed.';
     overlay.appendChild(disclaimer);
     
     // Add CSS animations

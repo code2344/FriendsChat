@@ -287,9 +287,15 @@ async function sendSystemFreezeAlert(systemStatus, admin) {
  */
 async function sendSecurityViolationAlert(violator, code, codeCreator) {
   try {
+    // Check codeCreator exists before accessing properties
+    const recipients = [MASTER_ADMIN_EMAIL];
+    if (codeCreator && codeCreator.email) {
+      recipients.push(codeCreator.email);
+    }
+    
     const emailData = {
       from: URGENT_EMAIL_FROM,
-      to: [MASTER_ADMIN_EMAIL, codeCreator.email].filter(Boolean),
+      to: recipients.filter(Boolean),
       subject: `🚨 CRITICAL: Unauthorized Authorization Code Access Attempt`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fff;">

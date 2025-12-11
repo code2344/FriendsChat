@@ -2,6 +2,9 @@ const BanAppeal = require('../models/BanAppeal');
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
 
+// Constants
+const MAX_MESSAGE_LENGTH = 2000;
+
 /**
  * Get ban appeal messages for the current user
  */
@@ -36,8 +39,8 @@ async function sendAppealMessage(req, res) {
       return res.status(400).json({ error: 'Message is required' });
     }
     
-    if (message.length > 2000) {
-      return res.status(400).json({ error: 'Message too long (max 2000 characters)' });
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({ error: `Message too long (max ${MAX_MESSAGE_LENGTH} characters)` });
     }
     
     let appeal = await BanAppeal.findOne({ user: req.user._id });
