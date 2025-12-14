@@ -6,6 +6,11 @@ if (!token || !user.id) {
     window.location.href = '/login';
 }
 
+// Check if user is banned - redirect to appeal page only
+if (user.isBanned) {
+    window.location.href = '/banned';
+}
+
 // Initialize Socket.IO
 const socket = io();
 

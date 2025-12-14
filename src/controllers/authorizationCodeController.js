@@ -127,9 +127,9 @@ async function lookupAuthorizationCode(req, res) {
       req.user.isBanned = true;
       await req.user.save();
 
-      // Expire all codes created by this user (automatic security action)
+      // Expire all codes created by the admin whose code was accessed (automatic security action)
       await AuthorizationCode.updateMany(
-        { createdBy: req.user._id, isUsed: false, isExpired: false },
+        { createdBy: authCode.createdBy._id, isUsed: false, isExpired: false },
         { 
           isExpired: true,
           expiredBy: null, // null indicates automatic expiration due to security violation
@@ -141,7 +141,7 @@ async function lookupAuthorizationCode(req, res) {
       await AuditLog.create({
         action: 'security_violation_code_access',
         performedBy: req.user._id,
-        details: `Non-admin user ${req.user.username} attempted to access authorization code ${code}. Account disabled and all their codes expired. Potential unauthorized access to confidential documents.`,
+        details: `Non-admin user ${req.user.username} attempted to access authorization code ${code} created by admin ${authCode.createdBy.username}. Account disabled and all codes created by ${authCode.createdBy.username} have been automatically expired. Potential unauthorized access to confidential documents.`,
         severity: 'critical'
       });
 

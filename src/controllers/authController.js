@@ -76,24 +76,38 @@ async function login(req, res) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Check if user is banned
-    if (user.isBanned) {
-      return res.status(403).json({ error: 'Account is banned' });
-    }
-
-    // Check password
+    // Check password (do this before ban check so banned users can login)
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT token (even for pending users to access pending page)
+    // Generate JWT token (for pending, banned, and approved users)
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    // Check if user is banned - allow login but flag for redirect to appeal page
+    if (user.isBanned) {
+      return res.json({
+        message: 'Login successful - account banned',
+        token,
+        user: {
+          id: user._id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+          isApproved: user.isApproved,
+          isBanned: true
+        },
+        banned: true
+      });
+    }
 
     // Check if account is approved
     if (!user.isApproved) {
@@ -110,7 +124,7 @@ async function login(req, res) {
           role: user.role,
           isApproved: false,
           isDenied: user.isDenied || false,
-          isBanned: user.isBanned
+          isBanned: false
         },
         pendingApproval: true
       });
@@ -126,7 +140,8 @@ async function login(req, res) {
         lastName: user.lastName,
         email: user.email,
         role: user.role,
-        isApproved: true
+        isApproved: true,
+        isBanned: false
       }
     });
   } catch (error) {
