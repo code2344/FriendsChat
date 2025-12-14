@@ -3,6 +3,8 @@
  * Basic implementation with hooks for AI service integration
  */
 
+const AuditLog = require('../models/AuditLog');
+
 // Known NSFW file hashes (example - would be populated with actual hashes)
 const KNOWN_NSFW_HASHES = new Set([
     // SHA-256 hashes of known NSFW content
@@ -205,8 +207,6 @@ async function detectNSFW(file, options = {}) {
  * Log content safety check
  */
 async function logContentSafetyCheck(userId, fileId, result) {
-    const AuditLog = require('../models/AuditLog');
-    
     try {
         await AuditLog.create({
             action: 'content_safety_check',
