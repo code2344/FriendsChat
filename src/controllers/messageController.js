@@ -3,7 +3,7 @@ const DirectMessage = require('../models/DirectMessage');
 const Channel = require('../models/Channel');
 const Server = require('../models/Server');
 const { encryptMessage, decryptMessage } = require('../utils/encryption');
-const { filterProfanity } = require('../utils/profanityFilter');
+const { moderateText, logModerationAction } = require('../utils/profanityFilter');
 
 /**
  * Send a message to a channel
@@ -32,8 +32,26 @@ async function sendMessage(req, res) {
       return res.status(403).json({ error: 'Not a member of this server' });
     }
 
-    // Filter profanity
-    const { filteredMessage, isFiltered } = filterProfanity(content);
+    // Moderate text (profanity, hate speech, spam detection)
+    const moderation = moderateText(content);
+    
+    // Block message if not allowed
+    if (!moderation.allowed) {
+      // Log the violation
+      if (moderation.violations.length > 0) {
+        await logModerationAction(req.user._id, null, moderation.violations);
+      }
+      
+      return res.status(400).json({ 
+        error: 'Message blocked by content filter',
+        reason: moderation.filtered,
+        violations: moderation.violations.map(v => v.type)
+      });
+    }
+
+    // Use filtered content
+    const filteredMessage = moderation.filtered;
+    const isFiltered = moderation.violations.length > 0;
 
     // Encrypt message
     const encryptedContent = encryptMessage(filteredMessage);
@@ -50,6 +68,11 @@ async function sendMessage(req, res) {
 
     await message.save();
     await message.populate('author', 'username firstName lastName');
+    
+    // Log moderation if violations found
+    if (moderation.violations.length > 0) {
+      await logModerationAction(req.user._id, message._id, moderation.violations);
+    }
 
     res.status(201).json(message);
   } catch (error) {
@@ -118,8 +141,26 @@ async function sendDirectMessage(req, res) {
       return res.status(400).json({ error: 'Content and recipient ID are required' });
     }
 
-    // Filter profanity
-    const { filteredMessage, isFiltered } = filterProfanity(content);
+    // Moderate text (profanity, hate speech, spam detection)
+    const moderation = moderateText(content);
+    
+    // Block message if not allowed
+    if (!moderation.allowed) {
+      // Log the violation
+      if (moderation.violations.length > 0) {
+        await logModerationAction(req.user._id, null, moderation.violations);
+      }
+      
+      return res.status(400).json({ 
+        error: 'Message blocked by content filter',
+        reason: moderation.filtered,
+        violations: moderation.violations.map(v => v.type)
+      });
+    }
+
+    // Use filtered content
+    const filteredMessage = moderation.filtered;
+    const isFiltered = moderation.violations.length > 0;
 
     // Encrypt message
     const encryptedContent = encryptMessage(filteredMessage);
@@ -138,15 +179,22 @@ async function sendDirectMessage(req, res) {
     }
 
     // Add message to conversation
-    dmConversation.messages.push({
+    const newMessage = {
       sender: req.user._id,
       content: filteredMessage,
       encryptedContent,
       isFiltered
-    });
+    };
+    
+    dmConversation.messages.push(newMessage);
 
     dmConversation.lastMessage = new Date();
     await dmConversation.save();
+    
+    // Log moderation if violations found
+    if (moderation.violations.length > 0) {
+      await logModerationAction(req.user._id, newMessage._id, moderation.violations);
+    }
     
     // Populate for response
     await dmConversation.populate('participants', 'username firstName lastName');
