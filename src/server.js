@@ -70,6 +70,8 @@ app.use('/api/ban-appeal', banAppealRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/webrtc', webrtcRoutes);
+const backupRoutes = require('./routes/backup');
+app.use('/api/backup', backupRoutes);
 
 // Serve HTML pages
 app.get('/', (req, res) => {
@@ -216,6 +218,15 @@ async function startServer() {
       setInterval(async () => {
         await archiveManager.autoArchive();
       }, 6 * 60 * 60 * 1000); // 6 hours
+      
+      // Schedule hourly database backups to GitHub
+      const { scheduleHourlyBackups } = require('./utils/databaseBackup');
+      if (process.env.GITHUB_BACKUP_TOKEN || process.env.GITHUB_STORAGE_TOKEN) {
+        scheduleHourlyBackups();
+        console.log('\x1b[32m✓ Hourly database backups scheduled\x1b[0m');
+      } else {
+        console.log('\x1b[33m⚠ Database backups disabled (GITHUB_BACKUP_TOKEN not configured)\x1b[0m');
+      }
 
       // Run initial archive check after 5 minutes
       setTimeout(async () => {
