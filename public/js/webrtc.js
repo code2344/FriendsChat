@@ -362,6 +362,45 @@ class WebRTCManager {
             container.innerHTML = '';
         }
     }
+    
+    /**
+     * Join a channel (alias for voiceUI.js compatibility)
+     */
+    async joinChannel(channelId, localStream) {
+        this.currentChannelId = channelId;
+        this.localStream = localStream;
+        
+        // Socket emit is handled by voiceUI
+        return true;
+    }
+    
+    /**
+     * Leave channel (alias for voiceUI.js compatibility)
+     */
+    async leaveChannel() {
+        this.leaveVoiceChannel();
+    }
+    
+    /**
+     * Get quality settings (for voiceUI.js)
+     */
+    async getQualitySettings() {
+        if (!this.mediaQuality) {
+            await this.initialize();
+        }
+        return this.mediaQuality;
+    }
+    
+    /**
+     * Add track to all peer connections
+     */
+    async addTrackToAllPeers(track) {
+        if (!this.localStream) return;
+        
+        this.peerConnections.forEach(pc => {
+            pc.addTrack(track, this.localStream);
+        });
+    }
 }
 
 // Export for use in chat.js

@@ -2304,5 +2304,22 @@ function updateUserAvatar(avatarUrl) {
 window.uploadAvatar = uploadAvatar;
 window.uploadBanner = uploadBanner;
 
+// Initialize WebRTC and Voice UI
+let webrtcManager;
+if (typeof WebRTCManager !== 'undefined') {
+    webrtcManager = new WebRTCManager(socket);
+    webrtcManager.initialize().then(() => {
+        console.log('WebRTC initialized');
+        
+        // Initialize voice UI after WebRTC is ready
+        if (typeof initializeVoiceUI !== 'undefined') {
+            initializeVoiceUI(webrtcManager);
+            console.log('Voice UI initialized');
+        }
+    }).catch(error => {
+        console.error('Error initializing WebRTC:', error);
+    });
+}
+
 console.log('All frontend features successfully integrated!');
 
