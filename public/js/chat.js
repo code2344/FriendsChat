@@ -1827,6 +1827,11 @@ window.displayFriends = displayFriends;
 window.displayFriendRequests = displayFriendRequests;
 window.startDm = startDm;
 
+// Initialize settings modal when settings button is clicked
+document.getElementById('settingsBtn')?.addEventListener('click', () => {
+    openModal('settingsModal');
+});
+
 // Initialize friends modal when friends button is clicked
 document.getElementById('friendsBtn')?.addEventListener('click', () => {
     openModal('friendsModal');
