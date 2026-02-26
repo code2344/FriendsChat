@@ -279,9 +279,105 @@ async function sendSystemFreezeAlert(systemStatus, admin) {
   }
 }
 
+/**
+ * Send security violation alert for authorization code access
+ * @param {Object} violator - User who attempted unauthorized access
+ * @param {string} code - Authorization code that was accessed
+ * @param {Object} codeCreator - Admin who created the code
+ */
+async function sendSecurityViolationAlert(violator, code, codeCreator) {
+  try {
+    // Check codeCreator exists before accessing properties
+    const recipients = [MASTER_ADMIN_EMAIL];
+    if (codeCreator && codeCreator.email) {
+      recipients.push(codeCreator.email);
+    }
+    
+    const emailData = {
+      from: URGENT_EMAIL_FROM,
+      to: recipients.filter(Boolean),
+      subject: `🚨 CRITICAL: Unauthorized Authorization Code Access Attempt`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fff;">
+          <div style="background-color: #dc3545; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="margin: 0; font-size: 24px;">🚨 CRITICAL: Security Violation</h1>
+          </div>
+          
+          <div style="padding: 30px; background-color: #f8f9fa; border: 2px solid #dc3545; border-top: none; border-radius: 0 0 8px 8px;">
+            <h2 style="color: #dc3545; margin-top: 0;">Unauthorized Authorization Code Access</h2>
+            
+            <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin-bottom: 20px;">
+              <p style="margin: 0; color: #856404;">
+                <strong>⚠️ IMMEDIATE ACTION TAKEN:</strong> User account has been automatically disabled and all their active codes expired.
+              </p>
+            </div>
+            
+            <div style="background-color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h3 style="color: #333; margin-top: 0;">Violator Information</h3>
+              <p style="margin: 5px 0;"><strong>Username:</strong> ${violator.username}</p>
+              <p style="margin: 5px 0;"><strong>Name:</strong> ${violator.firstName} ${violator.lastName}</p>
+              <p style="margin: 5px 0;"><strong>Student ID:</strong> ${violator.studentId}</p>
+              <p style="margin: 5px 0;"><strong>Email:</strong> ${violator.email}</p>
+            </div>
+            
+            <div style="background-color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h3 style="color: #333; margin-top: 0;">Code Information</h3>
+              <p style="margin: 5px 0;"><strong>Code Accessed:</strong> <code style="background: #f8f9fa; padding: 2px 6px; border-radius: 3px;">${code}</code></p>
+              <p style="margin: 5px 0;"><strong>Code Creator:</strong> ${codeCreator.username} (${codeCreator.firstName} ${codeCreator.lastName})</p>
+              <p style="margin: 5px 0;"><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+            </div>
+            
+            <div style="background-color: #f8d7da; padding: 15px; border-left: 4px solid #dc3545; margin-bottom: 20px;">
+              <p style="margin: 0; color: #721c24;"><strong>🔒 Security Assumptions:</strong></p>
+              <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #721c24;">
+                <li>User potentially accessed confidential documents</li>
+                <li>Document seal was broken without authorization</li>
+                <li>Full investigation required immediately</li>
+                <li>User may appeal through the ban appeal system</li>
+              </ul>
+            </div>
+            
+            <div style="background-color: #d1ecf1; padding: 15px; border-left: 4px solid #0dcaf0; margin-bottom: 20px;">
+              <p style="margin: 0; color: #055160;"><strong>ℹ️ Next Steps:</strong></p>
+              <ol style="margin: 10px 0 0 0; padding-left: 20px; color: #055160;">
+                <li>Review the audit log for full details</li>
+                <li>Check if user has submitted a ban appeal</li>
+                <li>Investigate how user obtained the code</li>
+                <li>Determine if documents were actually accessed</li>
+                <li>Make decision on ban appeal</li>
+              </ol>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+              <a href="${process.env.APP_URL || 'http://localhost:3000'}/admin" 
+                 style="display: inline-block; background-color: #dc3545; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                Review Security Violation
+              </a>
+            </div>
+          </div>
+          
+          <div style="text-align: center; padding: 20px; color: #6c757d; font-size: 12px;">
+            <p style="margin: 0;">FriendsChat Security System</p>
+            <p style="margin: 5px 0;">© 2025 SuperCode Studios</p>
+          </div>
+        </div>
+      `
+    };
+
+    const result = await resend.emails.send(emailData);
+    console.log('✅ Security violation alert sent:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Failed to send security violation alert:', error);
+    // Don't throw - security action should complete even if email fails
+    return null;
+  }
+}
+
 module.exports = {
   sendAdminMisconductAlert,
   sendDirectWarningNotification,
   sendInvestigationAssignment,
-  sendSystemFreezeAlert
+  sendSystemFreezeAlert,
+  sendSecurityViolationAlert
 };

@@ -47,6 +47,10 @@ const donationSchema = new mongoose.Schema({
       animatedAvatar: { type: Boolean, default: false },
       customBanner: { type: Boolean, default: true },
       profileTheme: { type: Boolean, default: true }
+    },
+    media: {
+      hdVideoQuality: { type: Boolean, default: false },
+      hdAudioQuality: { type: Boolean, default: false }
     }
   },
   verifiedBy: {

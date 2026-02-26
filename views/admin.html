@@ -224,6 +224,7 @@
                 <button class="nav-btn" onclick="showSection('servers')">🖥️ Servers</button>
                 <button class="nav-btn" onclick="showSection('reports')">📝 Reports</button>
                 <button class="nav-btn" onclick="showSection('bans')">🚫 Bans</button>
+                <button class="nav-btn" onclick="showSection('auth-codes')">🔐 Authorization Codes</button>
                 <div id="masterAdminNav" style="display: none;">
                     <button class="nav-btn" onclick="showSection('database')">💾 Database</button>
                     <button class="nav-btn" onclick="showSection('archive')">📦 Archive</button>
@@ -384,7 +385,48 @@
                     <div id="activityChart">Loading...</div>
                 </div>
             </div>
+
+            <!-- Authorization Codes Section -->
+            <div id="auth-codes-section" class="admin-section" style="display: none;">
+                <div class="dashboard-header">
+                    <h1 class="dashboard-title">Authorization Codes</h1>
+                    <button class="btn btn-primary" onclick="showCreateCodeModal()">➕ Generate New Code</button>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-secondary" onclick="filterAuthCodes('all')">All</button>
+                    <button class="btn btn-secondary" onclick="filterAuthCodes('unused')">Unused</button>
+                    <button class="btn btn-secondary" onclick="filterAuthCodes('used')">Used</button>
+                    <button class="btn btn-secondary" onclick="filterAuthCodes('expired')">Expired</button>
+                </div>
+
+                <div class="data-table">
+                    <div class="table-body" id="authCodesList">
+                        Loading...
+                    </div>
+                </div>
+            </div>
         </main>
+    </div>
+
+    <!-- Create Authorization Code Modal -->
+    <div id="createAuthCodeModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Generate Authorization Code</h2>
+                <button class="modal-close" onclick="closeCreateCodeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="codeDescription">Description *</label>
+                    <textarea id="codeDescription" rows="4" placeholder="Enter description for this code (e.g., 'Internal document signature verification')" required style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--background-modifier); background: var(--background-tertiary); color: var(--text-color);"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCreateCodeModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createAuthCode()">Generate Code</button>
+            </div>
+        </div>
     </div>
 
     <script src="/js/admin.js"></script>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Banned - FriendsChat</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <style>
+        .banned-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--background);
+            padding: 20px;
+        }
+        
+        .banned-content {
+            max-width: 600px;
+            width: 100%;
+            background: var(--background-secondary);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .banned-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        .banned-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--error-color);
+            margin-bottom: 20px;
+        }
+        
+        .banned-message {
+            color: var(--text-color);
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        
+        .appeal-section {
+            background: var(--background-tertiary);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: left;
+        }
+        
+        .appeal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin-bottom: 15px;
+        }
+        
+        .chat-container-appeal {
+            background: var(--background);
+            border-radius: 8px;
+            min-height: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .chat-message-appeal {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            background: var(--background-secondary);
+        }
+        
+        .chat-message-appeal.user {
+            background: var(--primary-color);
+            margin-left: 20px;
+        }
+        
+        .chat-message-appeal.admin {
+            background: var(--background-tertiary);
+            margin-right: 20px;
+        }
+        
+        .message-header {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        
+        .message-text {
+            color: var(--text-color);
+            line-height: 1.4;
+        }
+        
+        .appeal-input-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .appeal-input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--background-modifier);
+            background: var(--background);
+            color: var(--text-color);
+            resize: vertical;
+            min-height: 60px;
+            font-family: inherit;
+        }
+        
+        .appeal-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="banned-container">
+        <div class="banned-content">
+            <div class="banned-icon">🚫</div>
+            <h1 class="banned-title">Account Banned</h1>
+            <div class="banned-message">
+                <p>You have been <strong>permanently banned</strong> pending administrative review.</p>
+                <p><strong>Possible reasons for an accidental ban:</strong></p>
+                <ul style="text-align: left; margin: 15px auto; max-width: 500px;">
+                    <li>You accidentally opened a sealed document and entered an authorization code</li>
+                    <li>You tried random 8-digit numbers and happened to find a valid code</li>
+                    <li>Someone else used your account without permission</li>
+                </ul>
+                <p>If any of these apply, you may state your case below.</p>
+            </div>
+            
+            <div class="appeal-section">
+                <div class="appeal-title">State Your Case</div>
+                <div class="chat-container-appeal" id="appealChatContainer">
+                    <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+                        No messages yet. Explain your situation below.
+                    </div>
+                </div>
+                <div class="appeal-input-container">
+                    <textarea 
+                        id="appealInput" 
+                        class="appeal-input" 
+                        placeholder="Explain your situation here..."
+                    ></textarea>
+                    <button class="btn btn-primary" onclick="sendAppealMessage()" style="height: fit-content;">
+                        Send
+                    </button>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; font-size: 14px; color: var(--text-muted);">
+                <p>An administrator will review your case and respond here.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        if (!token || !user.id) {
+            window.location.href = '/login';
+        }
+        
+        // Load existing appeal messages
+        async function loadAppealMessages() {
+            try {
+                const response = await fetch(`/api/ban-appeal/messages`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const messages = await response.json();
+                    displayMessages(messages);
+                }
+            } catch (error) {
+                console.error('Error loading appeal messages:', error);
+            }
+        }
+        
+        function displayMessages(messages) {
+            const container = document.getElementById('appealChatContainer');
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No messages yet. Explain your situation below.</div>';
+                return;
+            }
+            
+            container.innerHTML = messages.map(msg => `
+                <div class="chat-message-appeal ${msg.isAdmin ? 'admin' : 'user'}">
+                    <div class="message-header">${msg.isAdmin ? 'Administrator' : 'You'} - ${new Date(msg.createdAt).toLocaleString()}</div>
+                    <div class="message-text">${msg.message}</div>
+                </div>
+            `).join('');
+            
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        async function sendAppealMessage() {
+            const input = document.getElementById('appealInput');
+            const message = input.value.trim();
+            
+            if (!message) {
+                alert('Please enter a message');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/ban-appeal/send', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message })
+                });
+                
+                if (response.ok) {
+                    input.value = '';
+                    loadAppealMessages();
+                } else {
+                    alert('Failed to send message');
+                }
+            } catch (error) {
+                console.error('Error sending appeal message:', error);
+                alert('Failed to send message');
+            }
+        }
+        
+        // Allow Enter to send (Shift+Enter for new line)
+        document.getElementById('appealInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendAppealMessage();
+            }
+        });
+        
+        // Load messages on page load
+        loadAppealMessages();
+        
+        // Poll for new messages every 5 seconds
+        setInterval(loadAppealMessages, 5000);
+        
+        window.sendAppealMessage = sendAppealMessage;
+    </script>
+</body>
+</html>

@@ -44,9 +44,30 @@ async function getUserServers(req, res) {
     // Build query based on user role
     let query;
     
-    if (req.user.role === 'admin' || req.user.role === 'master_admin') {
-      // Admins can see all servers
+    if (req.user.role === 'master_admin') {
+      // Master admin can see all servers
       query = {};
+    } else if (req.user.role === 'admin') {
+      // Regular admins can only see:
+      // 1. Servers they're members of
+      // 2. Servers where they have an active ticket
+      const Report = require('../models/Report');
+      
+      // Find servers with active tickets involving this admin
+      const activeTickets = await Report.find({
+        status: { $in: ['open', 'in_progress'] },
+        assignedTo: req.user._id
+      }).distinct('server');
+      
+      query = {
+        $or: [
+          { owner: req.user._id },
+          { members: req.user._id },
+          { coOwners: req.user._id },
+          { moderators: req.user._id },
+          { _id: { $in: activeTickets } } // Servers with active tickets
+        ]
+      };
     } else {
       // Regular users only see servers they're members of or public servers
       query = {

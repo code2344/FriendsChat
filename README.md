@@ -263,6 +263,10 @@ FriendsChat/
 - **MAC Address Tracking**: For permanent ban enforcement
 - **Admin Monitoring**: All chats can be monitored for safety
 - **Profanity Filter**: Automatic content filtering
+- **Authorization Codes**: 8-digit codes for document verification and access control
+  - Admins can generate single-use authorization codes
+  - Non-admin access attempts trigger security lockdown
+  - Full audit trail for all code operations
 
 ## Important Privacy Notice
 
@@ -353,6 +357,13 @@ FriendsChat/
 - `GET /api/teacher-access` - Get access requests (admin)
 - `POST /api/teacher-access/:requestId/approve` - Approve request (admin)
 - `POST /api/teacher-access/:requestId/deny` - Deny request (admin)
+
+### Authorization Codes
+- `POST /api/authorization-codes` - Generate new code (admin only)
+- `GET /api/authorization-codes` - Get all codes (admin only)
+- `GET /api/authorization-codes/:code` - Lookup code (triggers security check for non-admins)
+- `POST /api/authorization-codes/:code/use` - Mark code as used (admin only)
+- `POST /api/authorization-codes/:code/expire` - Expire code (admin only)
 
 ## 📚 Documentation
 

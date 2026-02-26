@@ -481,6 +481,7 @@ header h1 {
     align-items: center;
     flex: 1;
     min-width: 0;
+    max-width: 180px; /* Give more space for longer usernames */
 }
 
 .user-avatar {
@@ -503,12 +504,13 @@ header h1 {
 }
 
 .user-name {
-    font-size: 14px;
+    font-size: 13px; /* Slightly smaller to fit more text */
     font-weight: 600;
     color: var(--text-bright);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 140px; /* Allow more width for username */
 }
 
 .user-status {

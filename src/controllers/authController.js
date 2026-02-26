@@ -76,29 +76,59 @@ async function login(req, res) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Check if user is banned
-    if (user.isBanned) {
-      return res.status(403).json({ error: 'Account is banned' });
-    }
-
-    // Check password
+    // Check password (do this before ban check so banned users can login)
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Check if account is approved
-    if (!user.isApproved) {
-      return res.status(403).json({ error: 'Account pending approval' });
-    }
-
-    // Generate JWT token
+    // Generate JWT token (for pending, banned, and approved users)
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    // Check if user is banned - allow login but flag for redirect to appeal page
+    if (user.isBanned) {
+      return res.json({
+        message: 'Login successful - account banned',
+        token,
+        user: {
+          id: user._id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+          isApproved: user.isApproved,
+          isBanned: true
+        },
+        banned: true
+      });
+    }
+
+    // Check if account is approved
+    if (!user.isApproved) {
+      return res.json({
+        message: 'Login successful - pending approval',
+        token,
+        user: {
+          id: user._id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          studentId: user.studentId,
+          role: user.role,
+          isApproved: false,
+          isDenied: user.isDenied || false,
+          isBanned: false
+        },
+        pendingApproval: true
+      });
+    }
 
     res.json({
       message: 'Login successful',
@@ -109,7 +139,9 @@ async function login(req, res) {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role
+        role: user.role,
+        isApproved: true,
+        isBanned: false
       }
     });
   } catch (error) {
@@ -192,14 +224,27 @@ async function approveUser(req, res) {
 async function denyUser(req, res) {
   try {
     const { userId } = req.params;
+    const { reason } = req.body;
 
-    const user = await User.findByIdAndDelete(userId);
+    const user = await User.findById(userId);
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ message: 'User registration denied and removed' });
+    // Cannot deny an already approved user
+    if (user.isApproved) {
+      return res.status(400).json({ error: 'Cannot deny an approved user' });
+    }
+
+    // Mark as denied instead of deleting
+    user.isDenied = true;
+    user.denialReason = reason || 'No reason provided';
+    user.deniedBy = req.user._id;
+    user.deniedAt = Date.now();
+    await user.save();
+
+    res.json({ message: 'User registration denied', user });
   } catch (error) {
     res.status(500).json({ error: 'Failed to deny user', details: error.message });
   }
@@ -254,6 +299,88 @@ async function getAllUsers(req, res) {
   }
 }
 
+/**
+ * Check approval status (for pending users)
+ */
+async function checkStatus(req, res) {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      isApproved: user.isApproved,
+      isDenied: user.isDenied || false,
+      denialReason: user.denialReason,
+      user: {
+        id: user._id,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        isApproved: user.isApproved
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to check status', details: error.message });
+  }
+}
+
+/**
+ * Resubmit registration after denial
+ */
+async function resubmitRegistration(req, res) {
+  try {
+    const { firstName, lastName, studentId, email } = req.body;
+    
+    if (!firstName || !lastName || !studentId || !email) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+    
+    if (!/^\d{5}$/.test(studentId)) {
+      return res.status(400).json({ error: 'Student ID must be exactly 5 digits' });
+    }
+
+    const user = await User.findById(req.user._id);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    if (user.isApproved) {
+      return res.status(400).json({ error: 'Account is already approved' });
+    }
+
+    // Update user information
+    user.firstName = firstName.trim();
+    user.lastName = lastName.trim();
+    user.studentId = studentId.trim();
+    user.email = email.trim();
+    user.isDenied = false;
+    user.denialReason = null;
+    user.deniedBy = null;
+    user.deniedAt = null;
+    
+    await user.save();
+
+    res.json({ 
+      message: 'Application resubmitted successfully',
+      user: {
+        id: user._id,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to resubmit application', details: error.message });
+  }
+}
+
 module.exports = {
   register,
   login,
@@ -261,5 +388,7 @@ module.exports = {
   getAllUsers,
   approveUser,
   denyUser,
-  searchUsers
+  searchUsers,
+  checkStatus,
+  resubmitRegistration
 };

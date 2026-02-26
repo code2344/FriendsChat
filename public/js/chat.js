@@ -6,6 +6,11 @@ if (!token || !user.id) {
     window.location.href = '/login';
 }
 
+// Check if user is banned - redirect to appeal page only
+if (user.isBanned) {
+    window.location.href = '/banned';
+}
+
 // Initialize Socket.IO
 const socket = io();
 
@@ -1827,6 +1832,11 @@ window.displayFriends = displayFriends;
 window.displayFriendRequests = displayFriendRequests;
 window.startDm = startDm;
 
+// Initialize settings modal when settings button is clicked
+document.getElementById('settingsBtn')?.addEventListener('click', () => {
+    openModal('settingsModal');
+});
+
 // Initialize friends modal when friends button is clicked
 document.getElementById('friendsBtn')?.addEventListener('click', () => {
     openModal('friendsModal');
@@ -1835,6 +1845,481 @@ document.getElementById('friendsBtn')?.addEventListener('click', () => {
 
 // Global variable for report
 let currentReportMessageId = null;
+
+// ==================== AUTHORIZATION CODE LOOKUP ====================
+
+/**
+ * Handle input that could be either a username or authorization code
+ */
+async function handleFriendOrCodeInput(input) {
+    if (!input || !input.trim()) {
+        alert('Please enter a username or code');
+        return;
+    }
+    
+    const trimmedInput = input.trim();
+    
+    // Check if input is an 8-digit code
+    if (/^\d{8}$/.test(trimmedInput)) {
+        await lookupAuthCode(trimmedInput);
+    } else {
+        // Treat as username
+        await sendFriendRequest(trimmedInput);
+    }
+}
+
+async function lookupAuthCode(code) {
+    const resultDiv = document.getElementById('authCodeResult');
+    
+    if (!code) {
+        code = document.getElementById('addFriendUsername').value.trim();
+    }
+    
+    if (!code || !/^\d{8}$/.test(code)) {
+        resultDiv.style.display = 'block';
+        resultDiv.style.borderLeftColor = 'var(--error-color)';
+        resultDiv.innerHTML = '<p style="color: var(--error-color); margin: 0;">Please enter a valid 8-digit code.</p>';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/authorization-codes/${code}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Display code information
+            resultDiv.style.display = 'block';
+            resultDiv.style.borderLeftColor = 'var(--success-color)';
+            resultDiv.innerHTML = `
+                <h4 style="margin-top: 0; color: var(--text-bright);">Authorization Code Information</h4>
+                <div style="margin-bottom: 8px;">
+                    <strong>Code:</strong> <span style="font-family: monospace; font-size: 16px;">${data.code}</span>
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <strong>Description:</strong> ${data.description}
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <strong>Created By:</strong> ${data.createdBy.name} (@${data.createdBy.username})
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <strong>Created:</strong> ${new Date(data.createdAt).toLocaleString()}
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <strong>Status:</strong> 
+                    <span style="color: ${data.isExpired ? 'var(--error-color)' : data.isUsed ? 'var(--warning-color)' : 'var(--success-color)'};">
+                        ${data.isExpired ? 'EXPIRED' : data.isUsed ? 'USED' : 'ACTIVE'}
+                    </span>
+                </div>
+                ${data.isUsed ? `
+                    <div style="margin-bottom: 8px;">
+                        <strong>Used By:</strong> ${data.usedBy.name} (@${data.usedBy.username})
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Used On:</strong> ${new Date(data.usedAt).toLocaleString()}
+                    </div>
+                ` : ''}
+                ${data.securityWarning ? `
+                    <div style="margin-top: 12px; padding: 12px; background: var(--error-color); color: white; border-radius: 4px;">
+                        <strong>⚠️ Security Warning:</strong><br>
+                        ${data.securityWarning}
+                    </div>
+                ` : ''}
+                ${!data.isUsed && !data.isExpired ? `
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 12px;" onclick="markCodeAsUsed('${code}')">
+                        Mark as Used
+                    </button>
+                ` : ''}
+            `;
+        } else if (response.status === 403 && data.contactAdmin) {
+            // Account has been disabled for security violation
+            // Show dramatic ban animation
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            await showBanAnimation(user.username || 'User', true);
+        } else {
+            resultDiv.style.display = 'block';
+            resultDiv.style.borderLeftColor = 'var(--error-color)';
+            resultDiv.innerHTML = `<p style="color: var(--error-color); margin: 0;">${data.error || 'Failed to lookup code'}</p>`;
+        }
+    } catch (error) {
+        console.error('Error looking up authorization code:', error);
+        resultDiv.style.display = 'block';
+        resultDiv.style.borderLeftColor = 'var(--error-color)';
+        resultDiv.innerHTML = '<p style="color: var(--error-color); margin: 0;">An error occurred while looking up the code.</p>';
+    }
+}
+
+async function markCodeAsUsed(code) {
+    if (!confirm('Mark this code as used? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/authorization-codes/${code}/use`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('Code marked as used successfully');
+            // Refresh the lookup to show updated status
+            lookupAuthCode();
+        } else {
+            alert(`Error: ${data.error || 'Failed to mark code as used'}`);
+        }
+    } catch (error) {
+        console.error('Error marking code as used:', error);
+        alert('Failed to mark code as used');
+    }
+}
+
+window.handleFriendOrCodeInput = handleFriendOrCodeInput;
+window.lookupAuthCode = lookupAuthCode;
+window.markCodeAsUsed = markCodeAsUsed;
+
+// ==================== USER PROFILE ====================
+
+/**
+ * Load user profile data into settings modal
+ */
+async function loadProfileData() {
+    try {
+        const response = await fetch('/api/profile/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const profile = await response.json();
+            
+            // Populate bio
+            const bioInput = document.getElementById('profileBioInput');
+            if (bioInput && profile.bio) {
+                bioInput.value = profile.bio;
+                updateBioCharCount();
+            }
+            
+            // Populate pronouns
+            const pronounsInput = document.getElementById('profilePronounsInput');
+            if (pronounsInput && profile.pronouns) {
+                pronounsInput.value = profile.pronouns;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading profile data:', error);
+    }
+}
+
+/**
+ * Save profile changes
+ */
+async function saveProfile() {
+    const bio = document.getElementById('profileBioInput').value.trim();
+    const pronouns = document.getElementById('profilePronounsInput').value.trim();
+    
+    try {
+        const response = await fetch('/api/profile/me', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ bio, pronouns })
+        });
+        
+        if (response.ok) {
+            showNotification('Profile updated successfully');
+            
+            // Update local user data
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            user.bio = bio;
+            user.pronouns = pronouns;
+            localStorage.setItem('user', JSON.stringify(user));
+        } else {
+            const data = await response.json();
+            alert(`Error: ${data.error || 'Failed to update profile'}`);
+        }
+    } catch (error) {
+        console.error('Error saving profile:', error);
+        alert('Failed to update profile');
+    }
+}
+
+/**
+ * Update bio character count
+ */
+function updateBioCharCount() {
+    const bioInput = document.getElementById('profileBioInput');
+    const charCount = document.getElementById('bioCharCount');
+    
+    if (bioInput && charCount) {
+        const length = bioInput.value.length;
+        charCount.textContent = `${length}/190`;
+        charCount.style.color = length > 180 ? 'var(--warning-color)' : 'var(--text-muted)';
+    }
+}
+
+/**
+ * View another user's profile
+ */
+async function viewUserProfile(userId) {
+    try {
+        const response = await fetch(`/api/profile/${userId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const profile = await response.json();
+            displayUserProfile(profile);
+            openModal('userProfileModal');
+        } else {
+            alert('Failed to load user profile');
+        }
+    } catch (error) {
+        console.error('Error loading user profile:', error);
+        alert('Failed to load user profile');
+    }
+}
+
+/**
+ * Display user profile in modal
+ */
+function displayUserProfile(profile) {
+    // Set username
+    const usernameEl = document.getElementById('profileUsername');
+    if (usernameEl) {
+        usernameEl.textContent = `${profile.firstName} (@${profile.username})`;
+    }
+    
+    // Set bio
+    const bioEl = document.getElementById('profileBio');
+    if (bioEl) {
+        bioEl.textContent = profile.bio || 'No bio yet';
+        bioEl.style.fontStyle = profile.bio ? 'normal' : 'italic';
+    }
+    
+    // Set avatar
+    const avatarEl = document.getElementById('profileAvatar');
+    if (avatarEl) {
+        if (profile.avatar) {
+            avatarEl.style.backgroundImage = `url(${profile.avatar})`;
+            avatarEl.style.backgroundSize = 'cover';
+            avatarEl.textContent = '';
+        } else {
+            avatarEl.textContent = profile.firstName.charAt(0).toUpperCase();
+            avatarEl.style.backgroundImage = 'none';
+        }
+    }
+    
+    // Set banner
+    const bannerEl = document.getElementById('profileBanner');
+    if (bannerEl && profile.banner) {
+        bannerEl.style.backgroundImage = `url(${profile.banner})`;
+        bannerEl.style.backgroundSize = 'cover';
+    }
+    
+    // Set badges
+    const badgesEl = document.getElementById('profileBadges');
+    if (badgesEl && profile.badges && profile.badges.length > 0) {
+        badgesEl.innerHTML = profile.badges.map(badge => {
+            const badgeIcons = {
+                staff: '🛡️',
+                partner: '🤝',
+                verified: '✓',
+                early_supporter: '⭐',
+                bug_hunter: '🐛',
+                contributor: '💻',
+                donor: '💎',
+                teacher: '📚'
+            };
+            return `<span style="font-size: 24px;" title="${badge}">${badgeIcons[badge] || '🏅'}</span>`;
+        }).join('');
+    }
+    
+    // Store profile ID for actions
+    window.currentProfileUserId = profile._id;
+}
+
+// Add bio character count listener
+document.addEventListener('DOMContentLoaded', () => {
+    const bioInput = document.getElementById('profileBioInput');
+    if (bioInput) {
+        bioInput.addEventListener('input', updateBioCharCount);
+    }
+});
+
+// Load profile data when settings modal is opened
+const originalOpenModal = window.openModal;
+window.openModal = function(modalId) {
+    originalOpenModal(modalId);
+    if (modalId === 'settingsModal') {
+        loadProfileData();
+    }
+};
+
+window.saveProfile = saveProfile;
+window.viewUserProfile = viewUserProfile;
+window.loadProfileData = loadProfileData;
+
+// ==================== FILE UPLOADS ====================
+
+/**
+ * Upload avatar
+ */
+async function uploadAvatar(file) {
+    if (!file) return;
+    
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Avatar file too large. Maximum size is 5MB.');
+        return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('avatar', file);
+    
+    try {
+        showNotification('Uploading avatar...');
+        
+        const response = await fetch('/api/upload/avatar', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('Avatar uploaded successfully!');
+            
+            // Update preview
+            const currentAvatar = document.getElementById('currentAvatar');
+            if (currentAvatar) {
+                currentAvatar.style.backgroundImage = `url(${data.url})`;
+                currentAvatar.style.backgroundSize = 'cover';
+                currentAvatar.textContent = '';
+            }
+            
+            // Update local user data
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            user.avatar = data.url;
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            // Update user avatar display
+            updateUserAvatar(data.url);
+        } else {
+            alert(`Error: ${data.error || 'Failed to upload avatar'}`);
+        }
+    } catch (error) {
+        console.error('Error uploading avatar:', error);
+        alert('Failed to upload avatar');
+    }
+}
+
+/**
+ * Upload banner
+ */
+async function uploadBanner(file) {
+    if (!file) return;
+    
+    // Validate file size (8MB)
+    if (file.size > 8 * 1024 * 1024) {
+        alert('Banner file too large. Maximum size is 8MB.');
+        return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('banner', file);
+    
+    try {
+        showNotification('Uploading banner...');
+        
+        const response = await fetch('/api/upload/banner', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('Banner uploaded successfully!');
+            
+            // Update preview
+            const currentBanner = document.getElementById('currentBanner');
+            if (currentBanner) {
+                currentBanner.style.backgroundImage = `url(${data.url})`;
+                currentBanner.style.backgroundSize = 'cover';
+            }
+            
+            // Update local user data
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            user.banner = data.url;
+            localStorage.setItem('user', JSON.stringify(user));
+        } else {
+            alert(`Error: ${data.error || 'Failed to upload banner'}`);
+        }
+    } catch (error) {
+        console.error('Error uploading banner:', error);
+        alert('Failed to upload banner');
+    }
+}
+
+/**
+ * Update user avatar display in UI
+ */
+function updateUserAvatar(avatarUrl) {
+    const userAvatar = document.getElementById('userAvatar');
+    if (userAvatar) {
+        if (avatarUrl) {
+            userAvatar.style.backgroundImage = `url(${avatarUrl})`;
+            userAvatar.style.backgroundSize = 'cover';
+            userAvatar.textContent = '';
+        }
+    }
+}
+
+window.uploadAvatar = uploadAvatar;
+window.uploadBanner = uploadBanner;
+
+// Initialize WebRTC and Voice UI
+let webrtcManager;
+if (typeof WebRTCManager !== 'undefined') {
+    webrtcManager = new WebRTCManager(socket);
+    webrtcManager.initialize().then(() => {
+        console.log('WebRTC initialized');
+        
+        // Initialize voice UI after WebRTC is ready
+        if (typeof initializeVoiceUI !== 'undefined') {
+            initializeVoiceUI(webrtcManager);
+            console.log('Voice UI initialized');
+        }
+    }).catch(error => {
+        console.error('Error initializing WebRTC:', error);
+    });
+}
 
 console.log('All frontend features successfully integrated!');
 

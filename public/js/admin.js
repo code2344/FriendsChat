@@ -44,6 +44,9 @@ function showSection(section) {
         case 'bans':
             loadBans();
             break;
+        case 'auth-codes':
+            loadAuthCodes();
+            break;
         case 'database':
             loadDatabaseStats();
             break;
@@ -204,16 +207,21 @@ async function approveUser(userId) {
 }
 
 async function denyUser(userId) {
-    if (!confirm('Are you sure you want to deny this user?')) return;
+    const reason = prompt('Reason for denial (user will see this):');
+    if (!reason) return;
 
     try {
         const response = await fetch(`/api/auth/deny/${userId}`, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason })
         });
 
         if (response.ok) {
-            alert('User denied and removed');
+            alert('User denied. They can edit and resubmit their application.');
             loadUsers();
             refreshDashboard();
         }
@@ -727,6 +735,167 @@ window.issueDW = issueDW;
 window.loadActiveDWs = loadActiveDWs;
 window.resolveDW = resolveDW;
 window.viewDW = viewDW;
+
+// Authorization Codes Functions
+let currentAuthCodeFilter = 'all';
+
+async function loadAuthCodes(status = currentAuthCodeFilter) {
+    currentAuthCodeFilter = status;
+    try {
+        const url = status && status !== 'all' 
+            ? `/api/authorization-codes?status=${status}` 
+            : '/api/authorization-codes';
+        
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const codes = await response.json();
+            displayAuthCodes(codes);
+        } else {
+            document.getElementById('authCodesList').innerHTML = 
+                '<p style="color: var(--error-color); padding: 20px;">Failed to load authorization codes</p>';
+        }
+    } catch (error) {
+        console.error('Error loading authorization codes:', error);
+        document.getElementById('authCodesList').innerHTML = 
+            '<p style="color: var(--error-color); padding: 20px;">Error loading authorization codes</p>';
+    }
+}
+
+function displayAuthCodes(codes) {
+    const container = document.getElementById('authCodesList');
+    
+    if (codes.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No authorization codes found</p>';
+        return;
+    }
+
+    container.innerHTML = codes.map(code => {
+        const statusBadge = code.isExpired ? 'badge-danger' : 
+                          code.isUsed ? 'badge-success' : 'badge-pending';
+        const statusText = code.isExpired ? 'EXPIRED' : 
+                          code.isUsed ? 'USED' : 'ACTIVE';
+        
+        return `
+            <div class="table-row">
+                <div>
+                    <div style="font-weight: 600; color: var(--text-bright); font-family: monospace; font-size: 18px;">
+                        ${code.code}
+                        <span class="user-badge ${statusBadge}">${statusText}</span>
+                    </div>
+                    <div style="font-size: 14px; color: var(--text-color); margin-top: 8px;">
+                        ${code.description}
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+                        Created by: <strong>${code.createdBy?.username || 'Unknown'}</strong> 
+                        (${code.createdBy?.firstName} ${code.createdBy?.lastName}) 
+                        on ${new Date(code.createdAt).toLocaleString()}
+                    </div>
+                    ${code.isUsed ? `
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                            Used by: <strong>${code.usedBy?.username || 'Unknown'}</strong> 
+                            on ${new Date(code.usedAt).toLocaleString()}
+                        </div>
+                    ` : ''}
+                    ${code.isExpired ? `
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                            Expired on ${new Date(code.expiredAt).toLocaleString()}
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="action-buttons">
+                    ${!code.isUsed && !code.isExpired ? `
+                        <button class="btn btn-small btn-danger" onclick="expireAuthCode('${code.code}')">Expire</button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function filterAuthCodes(status) {
+    loadAuthCodes(status);
+}
+
+function showCreateCodeModal() {
+    document.getElementById('createAuthCodeModal').style.display = 'flex';
+}
+
+function closeCreateCodeModal() {
+    document.getElementById('createAuthCodeModal').style.display = 'none';
+    document.getElementById('codeDescription').value = '';
+}
+
+async function createAuthCode() {
+    const description = document.getElementById('codeDescription').value.trim();
+    
+    if (!description) {
+        alert('Please enter a description');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/authorization-codes', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ description })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert(`Authorization code generated successfully!\n\nCode: ${data.code.code}\n\nThis code can only be used once. Please record it securely.`);
+            closeCreateCodeModal();
+            loadAuthCodes();
+        } else {
+            alert(`Error: ${data.error || 'Failed to generate code'}`);
+        }
+    } catch (error) {
+        console.error('Error creating authorization code:', error);
+        alert('Failed to create authorization code. Check console for details.');
+    }
+}
+
+async function expireAuthCode(code) {
+    if (!confirm(`Are you sure you want to expire code ${code}? This action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/authorization-codes/${code}/expire`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert('Code expired successfully');
+            loadAuthCodes();
+        } else {
+            alert(`Error: ${data.error || 'Failed to expire code'}`);
+        }
+    } catch (error) {
+        console.error('Error expiring authorization code:', error);
+        alert('Failed to expire code. Check console for details.');
+    }
+}
+
+// Make functions global
+window.loadAuthCodes = loadAuthCodes;
+window.filterAuthCodes = filterAuthCodes;
+window.showCreateCodeModal = showCreateCodeModal;
+window.closeCreateCodeModal = closeCreateCodeModal;
+window.createAuthCode = createAuthCode;
+window.expireAuthCode = expireAuthCode;
 
 // Load users on page load
 loadAllUsers();

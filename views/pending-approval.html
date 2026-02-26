@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approval Pending - FriendsChat</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <style>
+        .pending-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .pending-content {
+            max-width: 600px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 50px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .pending-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .pending-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .pending-subtitle {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .status-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 30px 0;
+        }
+        
+        .status-text {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .status-description {
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        
+        .info-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .info-list {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.8;
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .action-buttons {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .btn-logout {
+            background: #6c757d;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+        
+        .btn-logout:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-refresh {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-refresh:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .denied-box {
+            background: #dc3545;
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 30px 0;
+        }
+        
+        .edit-form {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .denial-reason {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="pending-container">
+        <div class="pending-content">
+            <div id="pendingView">
+                <div class="pending-icon">⏳</div>
+                <h1 class="pending-title">Review In Progress</h1>
+                <p class="pending-subtitle">Your account is being reviewed by our administrators</p>
+                
+                <div class="status-box">
+                    <div class="status-text">Application Status: Pending</div>
+                    <div class="status-description">
+                        We're carefully reviewing your registration to ensure the safety and security of our community.
+                        This process typically takes 24-48 hours.
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <div class="info-title">What happens next?</div>
+                    <ul class="info-list">
+                        <li>An administrator will review your registration details</li>
+                        <li>They'll verify your information matches school records</li>
+                        <li>You'll receive a notification once approved</li>
+                        <li>You can then access the full FriendsChat platform</li>
+                    </ul>
+                </div>
+                
+                <div class="info-box">
+                    <div class="info-title">Need help?</div>
+                    <ul class="info-list">
+                        <li>Make sure you registered with your correct student ID</li>
+                        <li>Use your official school email address</li>
+                        <li>Provide your real first and last name as they appear in school records</li>
+                    </ul>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn-refresh" onclick="checkApprovalStatus()">
+                        Check Status
+                        <span id="loadingSpinner" class="loading-spinner" style="display: none;"></span>
+                    </button>
+                    <a href="/" class="btn-logout" onclick="logout()">Logout</a>
+                </div>
+            </div>
+            
+            <div id="deniedView" style="display: none;">
+                <div class="pending-icon">❌</div>
+                <h1 class="pending-title">Application Denied</h1>
+                <p class="pending-subtitle">Your registration was not approved</p>
+                
+                <div class="denied-box">
+                    <div class="status-text">Reason for Denial</div>
+                    <div class="denial-reason" id="denialReason">
+                        Loading...
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <div class="info-title">You can resubmit your application</div>
+                    <p class="info-list">
+                        Please correct the information below and resubmit. Make sure all details match your official school records.
+                    </p>
+                </div>
+                
+                <div class="edit-form">
+                    <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="studentId">Student ID (5 digits)</label>
+                        <input type="text" id="studentId" pattern="[0-9]{5}" maxlength="5" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    <button class="btn-submit" onclick="resubmitRegistration()">Resubmit Application</button>
+                </div>
+                
+                <div class="action-buttons" style="margin-top: 20px;">
+                    <a href="/" class="btn-logout" onclick="logout()">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        if (!token || !user.id) {
+            window.location.href = '/login';
+        }
+        
+        // Check if user is actually approved (shouldn't be on this page)
+        if (user.isApproved) {
+            window.location.href = '/chat';
+        }
+        
+        // Check if user is banned (redirect to ban appeal page)
+        if (user.isBanned) {
+            window.location.href = '/banned';
+        }
+        
+        async function checkApprovalStatus() {
+            const spinner = document.getElementById('loadingSpinner');
+            spinner.style.display = 'inline-block';
+            
+            try {
+                const response = await fetch('/api/auth/status', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.isApproved) {
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        alert('Your account has been approved! Redirecting to chat...');
+                        window.location.href = '/chat';
+                    } else if (data.isDenied) {
+                        showDeniedView(data.denialReason || 'No reason provided');
+                    } else {
+                        alert('Your application is still pending review.');
+                    }
+                } else {
+                    alert('Failed to check status');
+                }
+            } catch (error) {
+                console.error('Error checking status:', error);
+                alert('Failed to check status');
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+        
+        function showDeniedView(reason) {
+            document.getElementById('pendingView').style.display = 'none';
+            document.getElementById('deniedView').style.display = 'block';
+            document.getElementById('denialReason').textContent = reason;
+            
+            // Pre-fill form with current data
+            document.getElementById('firstName').value = user.firstName || '';
+            document.getElementById('lastName').value = user.lastName || '';
+            document.getElementById('studentId').value = user.studentId || '';
+            document.getElementById('email').value = user.email || '';
+        }
+        
+        async function resubmitRegistration() {
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const studentId = document.getElementById('studentId').value.trim();
+            const email = document.getElementById('email').value.trim();
+            
+            if (!firstName || !lastName || !studentId || !email) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            if (!/^\d{5}$/.test(studentId)) {
+                alert('Student ID must be exactly 5 digits');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/resubmit', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ firstName, lastName, studentId, email })
+                });
+                
+                if (response.ok) {
+                    alert('Application resubmitted successfully! Waiting for admin review...');
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Failed to resubmit application');
+                }
+            } catch (error) {
+                console.error('Error resubmitting:', error);
+                alert('Failed to resubmit application');
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+        
+        window.checkApprovalStatus = checkApprovalStatus;
+        window.resubmitRegistration = resubmitRegistration;
+        window.logout = logout;
+        
+        // Auto-check status every 60 seconds (reduced from 30 to minimize server load)
+        setInterval(checkApprovalStatus, 60000);
+    </script>
+</body>
+</html>

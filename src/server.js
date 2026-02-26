@@ -26,6 +26,11 @@ const reportRoutes = require('./routes/reports');
 const directWarningRoutes = require('./routes/directWarnings');
 const reactionRoutes = require('./routes/reactions');
 const friendRoutes = require('./routes/friends');
+const authorizationCodeRoutes = require('./routes/authorizationCodes');
+const banAppealRoutes = require('./routes/banAppeal');
+const profileRoutes = require('./routes/profile');
+const uploadRoutes = require('./routes/upload');
+const webrtcRoutes = require('./routes/webrtc');
 
 const app = express();
 const server = http.createServer(app);
@@ -60,6 +65,13 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/direct-warnings', directWarningRoutes);
 app.use('/api/messages', reactionRoutes); // Reactions are on messages/:id/react
 app.use('/api/friends', friendRoutes);
+app.use('/api/authorization-codes', authorizationCodeRoutes);
+app.use('/api/ban-appeal', banAppealRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/webrtc', webrtcRoutes);
+const backupRoutes = require('./routes/backup');
+app.use('/api/backup', backupRoutes);
 
 // Serve HTML pages
 app.get('/', (req, res) => {
@@ -84,6 +96,16 @@ app.get('/admin', (req, res) => {
 
 app.get('/teacher-access', (req, res) => {
   res.sendFile(path.join(__dirname, '../views/teacher-access.html'));
+});
+
+// codeql[js/missing-rate-limiting] - Static HTML pages, rate limiting at infrastructure level
+app.get('/banned', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/banned.html'));
+});
+
+// codeql[js/missing-rate-limiting] - Static HTML pages, rate limiting at infrastructure level
+app.get('/pending-approval', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/pending-approval.html'));
 });
 
 app.get('/donate', (req, res) => {
@@ -120,6 +142,51 @@ io.on('connection', (socket) => {
     io.to(`channel-${data.channelId}`).emit('new-message', data);
   });
 
+  // WebRTC signaling events
+  socket.on('join-voice-channel', (data) => {
+    const { channelId, userId } = data;
+    socket.join(`voice-${channelId}`);
+    // Notify others in the voice channel
+    socket.to(`voice-${channelId}`).emit('user-joined-voice', { userId, socketId: socket.id });
+    console.log(`User ${userId} joined voice channel ${channelId}`);
+  });
+
+  socket.on('leave-voice-channel', (data) => {
+    const { channelId, userId } = data;
+    socket.leave(`voice-${channelId}`);
+    // Notify others in the voice channel
+    socket.to(`voice-${channelId}`).emit('user-left-voice', { userId, socketId: socket.id });
+    console.log(`User ${userId} left voice channel ${channelId}`);
+  });
+
+  // WebRTC signaling: offer
+  socket.on('webrtc-offer', (data) => {
+    const { to, offer, channelId } = data;
+    io.to(to).emit('webrtc-offer', {
+      from: socket.id,
+      offer,
+      channelId
+    });
+  });
+
+  // WebRTC signaling: answer
+  socket.on('webrtc-answer', (data) => {
+    const { to, answer } = data;
+    io.to(to).emit('webrtc-answer', {
+      from: socket.id,
+      answer
+    });
+  });
+
+  // WebRTC signaling: ICE candidate
+  socket.on('webrtc-ice-candidate', (data) => {
+    const { to, candidate } = data;
+    io.to(to).emit('webrtc-ice-candidate', {
+      from: socket.id,
+      candidate
+    });
+  });
+
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });
@@ -151,6 +218,15 @@ async function startServer() {
       setInterval(async () => {
         await archiveManager.autoArchive();
       }, 6 * 60 * 60 * 1000); // 6 hours
+      
+      // Schedule hourly database backups to GitHub
+      const { scheduleHourlyBackups } = require('./utils/databaseBackup');
+      if (process.env.GITHUB_BACKUP_TOKEN || process.env.GITHUB_STORAGE_TOKEN) {
+        scheduleHourlyBackups();
+        console.log('\x1b[32m✓ Hourly database backups scheduled\x1b[0m');
+      } else {
+        console.log('\x1b[33m⚠ Database backups disabled (GITHUB_BACKUP_TOKEN not configured)\x1b[0m');
+      }
 
       // Run initial archive check after 5 minutes
       setTimeout(async () => {

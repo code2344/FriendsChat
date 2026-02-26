@@ -2,6 +2,13 @@
  * Text Moderation and Swear Filtering System
  */
 
+const AuditLog = require('../models/AuditLog');
+
+// Helper function to escape regex special characters
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Comprehensive swear word list (censored for code)
 const SWEAR_WORDS = [
     // Tier 1: Mild (warnings)
@@ -64,7 +71,7 @@ function containsProfanity(text) {
         }
         
         // Check if swear is part of the text (with word boundaries)
-        const regex = new RegExp(`\\b${swear}\\b`, 'i');
+        const regex = new RegExp(`\\b${escapeRegex(swear)}\\b`, 'i');
         if (regex.test(lowerText)) {
             const severity = HATE_SPEECH.includes(swear) ? 'severe' : 
                             swear.length > 10 ? 'moderate' : 'mild';
@@ -90,7 +97,7 @@ function containsHateSpeech(text) {
     const lowerText = text.toLowerCase();
     
     for (const slur of HATE_SPEECH) {
-        const regex = new RegExp(`\\b${slur}\\b`, 'i');
+        const regex = new RegExp(`\\b${escapeRegex(slur)}\\b`, 'i');
         if (regex.test(lowerText)) {
             return {
                 found: true,
@@ -177,7 +184,7 @@ function filterProfanity(text) {
     let filtered = text;
     
     for (const swear of SWEAR_WORDS) {
-        const regex = new RegExp(`\\b${swear}\\b`, 'gi');
+        const regex = new RegExp(`\\b${escapeRegex(swear)}\\b`, 'gi');
         const replacement = swear[0] + '*'.repeat(swear.length - 1);
         filtered = filtered.replace(regex, replacement);
     }
@@ -285,8 +292,6 @@ function moderateText(text, options = {}) {
  * Log moderation action
  */
 async function logModerationAction(userId, messageId, violations) {
-    const AuditLog = require('../models/AuditLog');
-    
     try {
         await AuditLog.create({
             action: 'message_moderation',

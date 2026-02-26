@@ -55,6 +55,23 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isDenied: {
+    type: Boolean,
+    default: false
+  },
+  denialReason: {
+    type: String,
+    default: null
+  },
+  deniedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  deniedAt: {
+    type: Date,
+    default: null
+  },
   isBanned: {
     type: Boolean,
     default: false

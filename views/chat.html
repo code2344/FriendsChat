@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FriendsChat</title>
     <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/voice.css">
 </head>
 <body class="chat-page">
     <div class="chat-container">
@@ -439,6 +440,41 @@
                     </div>
                 </div>
                 <div class="settings-section">
+                    <h3>Profile</h3>
+                    <div class="form-group">
+                        <label>Profile Picture</label>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <div id="currentAvatar" style="width: 60px; height: 60px; border-radius: 50%; background: var(--primary-color); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;"></div>
+                            <div>
+                                <input type="file" id="avatarUpload" accept="image/*" style="display: none;" onchange="uploadAvatar(this.files[0])">
+                                <button class="btn btn-secondary" onclick="document.getElementById('avatarUpload').click()">Change Avatar</button>
+                                <p style="font-size: 12px; color: var(--text-muted); margin: 4px 0 0 0;">Max 5MB (JPG, PNG, GIF, WebP)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Profile Banner</label>
+                        <div style="margin-bottom: 12px;">
+                            <div id="currentBanner" style="width: 100%; height: 80px; border-radius: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+                            <input type="file" id="bannerUpload" accept="image/*" style="display: none;" onchange="uploadBanner(this.files[0])">
+                            <button class="btn btn-secondary" onclick="document.getElementById('bannerUpload').click()" style="margin-top: 8px;">Change Banner</button>
+                            <p style="font-size: 12px; color: var(--text-muted); margin: 4px 0 0 0;">Max 8MB (JPG, PNG, GIF, WebP)</p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Bio (max 190 characters)</label>
+                        <textarea id="profileBioInput" class="user-search-input" maxlength="190" rows="3" placeholder="Tell us about yourself..."></textarea>
+                        <span id="bioCharCount" style="font-size: 12px; color: var(--text-muted);">0/190</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Pronouns</label>
+                        <input type="text" id="profilePronounsInput" class="user-search-input" placeholder="e.g., they/them, he/him, she/her">
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-primary" onclick="saveProfile()" style="width: 100%;">Save Profile</button>
+                    </div>
+                </div>
+                <div class="settings-section">
                     <h3>Privacy</h3>
                     <div class="form-group">
                         <label>Allow Direct Messages From</label>
@@ -592,7 +628,11 @@
                     <div class="form-group">
                         <label>Add Friend by Username</label>
                         <input type="text" id="addFriendUsername" class="user-search-input" placeholder="Enter username...">
-                        <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="sendFriendRequest(document.getElementById('addFriendUsername').value)">Send Friend Request</button>
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="handleFriendOrCodeInput(document.getElementById('addFriendUsername').value)">Add Friend</button>
+                    </div>
+                    
+                    <div id="authCodeResult" style="display: none; margin-top: 16px; padding: 16px; background: var(--background-tertiary); border-radius: 8px; border-left: 4px solid var(--primary-color);">
+                        <!-- Code lookup results will appear here -->
                     </div>
                 </div>
             </div>
@@ -633,6 +673,9 @@
         </div>
     </div>
 
+    <script src="/js/banAnimation.js"></script>
+    <script src="/js/webrtc.js"></script>
+    <script src="/js/voiceUI.js"></script>
     <script src="/js/chat.js"></script>
 </body>
 </html>
